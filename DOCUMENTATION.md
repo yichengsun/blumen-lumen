@@ -163,6 +163,7 @@ These are coordinated by the backend server sending OSC to both, but they are el
 |---|---|
 | **Role** | Central computer — runs all software |
 | **OS** | Windows |
+| **Login** | Username: `Dream Lab` / Password: `123456` |
 | **Network** | WiFi (to router) + Ethernet (direct to Advatek) |
 | **Static IP** | Configured at install time (see Network section) |
 
@@ -563,6 +564,8 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 ---
 
 ## 8. How to Start the System
+
+**NUC login:** Username `Dream Lab` / Password `123456`
 
 **Pre-flight checklist:**
 - [ ] Dedicated WiFi router is powered on and broadcasting
