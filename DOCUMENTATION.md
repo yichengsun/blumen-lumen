@@ -10,7 +10,7 @@
 ### Open TODOs
 - [ ] Fill in all IP addresses once IT provisions the dedicated WiFi network (see [Section 5](#5-network-topology))
 - [ ] Identify the linear actuator model — check the physical unit for a label (brand, stroke length, force rating)
-- [ ] Confirm which LED strip model is on the spokes — check the strip itself for markings (e.g. WS2812B, SK6812)
+- [x] Confirm which LED strip model is on the spokes — check the strip itself for markings (e.g. WS2812B, SK6812)
 - [ ] Recalibrate `FULL_PERIOD` in the Arduino sketch at the new location — 70,500ms was measured at the original IDEO installation; mechanical friction and actuator wear may have changed travel time
 - [x] Verify Cytron MD30C R2 jumpers — confirmed `EXT PWM` + `INT PDT`
 - [ ] Confirm MadMapper OSC cue names match what the backend sends — open `yc-dreamlab-blumen.mad` in MadMapper and verify the OSC triggers are `/2/circular_p0`, `/2/stripes_p0`, etc.
@@ -25,7 +25,7 @@ These are areas where the documentation is based on code + photos but not confir
 
 | Section | What I'm Unsure About | How to Verify |
 |---|---|---|
-| **LED strips** | Strip model — I said "WS2812B-type" based on the era (~2017) but didn't confirm. The PixLite Long Range uses RS485 differential output, which usually drives strips through a receiver dongle at each spoke. There may be small receiver boards at the strip ends. | Look at the end of each LED strip cable where it enters the flower spoke — is there a small PCB before the strip itself? Also check the strip for printed markings. |
+| **LED strips** | Strip model — Based on the era (~2017), visual confirmation of the number of solder pads: WS2813A/B, 5V. In the housing it is hooked up to a PixLite Long Range receiver|
 | **NUC network interfaces** | The NUC needs to be on WiFi (for router/Arduino) AND Ethernet (for PixLite) simultaneously. I assumed NUC has both active. If the NUC only has one Ethernet port and no WiFi, you'll need a small switch. | On the NUC, open Network Settings and check how many active adapters there are. |
 | **Advatek ↔ NUC connection** | You said the PixLite connects "directly to the NUC via ethernet." If it's truly a direct cable (no switch), the NUC's Ethernet IP must be on the same subnet as the PixLite's IP, and the WiFi IP must be on the router's different subnet. This is the expected setup but worth confirming it's working. | Open MadMapper → Output settings and confirm it shows the PixLite as detected/connected. |
 | ~~**Cytron PWM jumper**~~ | ✅ Confirmed: `EXT PWM` + `INT PDT` | — |
