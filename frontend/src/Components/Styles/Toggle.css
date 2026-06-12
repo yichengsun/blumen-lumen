@@ -1,0 +1,28 @@
+.Toggle {
+    margin: 0 auto;
+    color: rgba(0, 0, 0, 1);
+    border: 1px solid #bfbfbf;
+    border-radius: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 250px;
+    position: relative;
+    height: 60px;
+}
+
+.Toggle p {
+    font-family: 'Gotham';
+    text-transform: uppercase;
+}
+
+.ToggleSwitchBox {
+    background: #ffc700;
+    border-radius: 30px;
+    width: 45%;
+    height: 45px;
+    position: absolute;
+    top: 7px;
+    left: 8px;
+    z-index: 1;
+}

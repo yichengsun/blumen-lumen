@@ -1,0 +1,29 @@
+.OpenSliderContent {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 35px auto;
+    width: 80%;
+    position: relative;
+    left: -6px;
+}
+
+.LabelOpen,
+.LabelClosed {
+    font-family: 'Gotham';
+    font-weight: normal;
+    text-transform: uppercase;
+    opacity: 0.5;
+    font-size: 12px;
+    width: 20%;
+    margin-top: -2px;
+    position: absolute;
+}
+
+.LabelClosed {
+    left: 38px;
+}
+
+.LabelOpen {
+    right: 34px;
+}

@@ -1,0 +1,15 @@
+.Button {
+    background-color: white;
+    border: 1px solid #bfbfbf;
+    border-radius: 45px;
+    color: rgba(0, 0, 0, 0.4);
+    width: 50%;
+    font-family: 'Gotham';
+    font-weight: normal;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.Button p {
+    margin: 14px;
+}

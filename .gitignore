@@ -1,3 +1,10 @@
-# Source repos — tracked independently, not part of this documentation repo
+# Original source repos — kept locally as archives, not tracked here
 blumen-lumen-ideo/
 ddl-ipad/
+
+# Dependencies — never commit these
+frontend/node_modules/
+backend/node_modules/
+
+# React build output — generated, not source
+frontend/build/

@@ -1,0 +1,28 @@
+.ColorPicker {
+    margin: -14px auto 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hue-picker {
+    width: 500px !important;
+    height: 25px !important;
+}
+.hue-picker div:first-child {
+    border-radius: 5px !important;
+}
+
+.hue-picker div:last-child {
+    height: 25px !important;
+    /* border: 3px solid black; */
+}
+
+.SelectedColor {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #bfbfbf;
+    border-radius: 25px;
+    margin-left: 20px;
+    padding: 5px;
+}

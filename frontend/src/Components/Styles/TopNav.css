@@ -1,0 +1,10 @@
+.TopNav {
+    text-align: center;
+    margin: 0 auto;
+    padding: 0;
+    width: 100%;
+    background-color: #f3f3f3;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}

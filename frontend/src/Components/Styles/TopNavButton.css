@@ -1,0 +1,14 @@
+.NavButton {
+    padding: 10px;
+    margin: 0 140px 10px 140px;
+    height: 30%;
+}
+.NavButton img {
+    width: 80px;
+    margin-bottom: 0px;
+}
+.NavButton h2 {
+    font-weight: normal;
+    margin-top: 0px;
+    padding: 0px 5px 1px 5px;
+}

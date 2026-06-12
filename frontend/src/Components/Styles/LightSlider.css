@@ -1,0 +1,25 @@
+.LightSliderContent {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 35px auto;
+    width: 80%;
+}
+.LightTitle {
+    width: 25%;
+    text-align: right;
+    margin-right: 45px;
+}
+.LightButtonONOFF {
+    width: 5%;
+    font-family: 'Gotham';
+    font-weight: normal;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0.5;
+    margin-right: 25px;
+}
+.LightScroll {
+    width: 70%;
+    padding-top: 3px;
+}

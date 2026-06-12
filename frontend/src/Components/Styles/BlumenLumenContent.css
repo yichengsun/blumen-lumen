@@ -1,0 +1,56 @@
+.BlumenLumenContent {
+    width: 80vw;
+    margin: 20px auto;
+}
+
+.BlumenLumenCustomSection {
+    margin-top: 20px;
+    border-top: 1px solid #e1e1e1;
+}
+.BlumenLumenDefaultSection {
+    z-index: 0;
+    position: absolute;
+    bottom: -15px;
+    left: 0;
+}
+.BlumenLumenDefaultSection img {
+    width: 100vw;
+}
+.BehaviourPreset,
+.Blumenphase,
+.ColorPickerSection {
+    margin-bottom: 60px;
+}
+.TopSwitcher {
+    padding-bottom: 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+.TopSwitcher h3 {
+    text-align: right;
+    width: 80px;
+    padding: 0 25px 0 10px;
+    margin-bottom: 25px;
+}
+
+.BehaviourPreset {
+    margin-top: 40px;
+}
+.BehaviourPresetButtons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: -2px;
+}
+.BehaviourPresetButtons div {
+    width: 38%;
+    margin: 5px;
+}
+
+.Blumenphase {
+    margin-top: -5px;
+    position: relative;
+}
