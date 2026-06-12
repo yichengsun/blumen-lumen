@@ -229,24 +229,35 @@ void setup() {
   Serial.println("║   github.com/yichengsun/blumen-lumen     ║");
   Serial.println("╚══════════════════════════════════════════╝");
 
-  // WiFi
+  // WiFi — 20-second timeout so serial commands work even without a network.
+  // OSC won't function until WiFi connects, but motor and schedule still work.
   logf("Connecting to %s ...", SSID);
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID); // open network — no password
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  {
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 40) {
+      delay(500);
+      Serial.print(".");
+      attempts++;
+    }
+    Serial.println();
   }
-  Serial.println();
-  logf("WiFi connected");
-  logf("IP  : %s", WiFi.localIP().toString().c_str());
-  logf("MAC : %s", WiFi.macAddress().c_str());
-  logf("GW  : %s", WiFi.gatewayIP().toString().c_str());
-  logf("RSSI: %d dBm", WiFi.RSSI());
+  if (WiFi.status() == WL_CONNECTED) {
+    logf("WiFi connected");
+    logf("IP  : %s", WiFi.localIP().toString().c_str());
+    logf("MAC : %s", WiFi.macAddress().c_str());
+    logf("GW  : %s", WiFi.gatewayIP().toString().c_str());
+    logf("RSSI: %d dBm", WiFi.RSSI());
 
-  // UDP
-  Udp.begin(OSC_PORT);
-  logf("Listening for OSC on UDP port %d", OSC_PORT);
+    // UDP
+    Udp.begin(OSC_PORT);
+    logf("Listening for OSC on UDP port %d", OSC_PORT);
+  } else {
+    logf("WARNING: WiFi not connected — OSC disabled. Serial commands still work.");
+    logf("MAC : %s", WiFi.macAddress().c_str());
+    logf("Check that this MAC is registered with Stanford IT.");
+  }
 
   // NTP
   logf("Syncing time via NTP...");
@@ -282,27 +293,29 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // WiFi watchdog
+  // WiFi watchdog — attempt reconnect periodically if connection is lost
   if (WiFi.status() != WL_CONNECTED && now - previousMillis >= WIFI_CHECK_INTERVAL) {
-    logf("WiFi dropped — reconnecting...");
+    previousMillis = now;
+    logf("WiFi not connected — attempting reconnect to %s...", SSID);
     WiFi.disconnect();
     WiFi.begin(SSID);
-    previousMillis = now;
   }
 
   handleSerialCommand();
   runSchedule();
 
-  // OSC receive
-  OSCMessage msg;
-  int size = Udp.parsePacket();
-  if (size > 0) {
-    while (size--) msg.fill(Udp.read());
-    if (!msg.hasError()) {
-      msg.dispatch("/1/fader1", motor);
-    } else {
-      OSCErrorCode err = msg.getError();
-      logf("OSC parse error: %d", err);
+  // OSC receive — only if WiFi is up
+  if (WiFi.status() == WL_CONNECTED) {
+    OSCMessage msg;
+    int size = Udp.parsePacket();
+    if (size > 0) {
+      while (size--) msg.fill(Udp.read());
+      if (!msg.hasError()) {
+        msg.dispatch("/1/fader1", motor);
+      } else {
+        OSCErrorCode err = msg.getError();
+        logf("OSC parse error: %d", err);
+      }
     }
   }
 }
