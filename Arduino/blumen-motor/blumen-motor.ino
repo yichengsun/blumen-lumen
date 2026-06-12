@@ -231,8 +231,9 @@ void setup() {
 
   // WiFi — 20-second timeout so serial commands work even without a network.
   // OSC won't function until WiFi connects, but motor and schedule still work.
-  logf("Connecting to %s ...", SSID);
   WiFi.mode(WIFI_STA);
+  logf("MAC : %s", WiFi.macAddress().c_str());
+  logf("Connecting to %s ...", SSID);
   WiFi.begin(SSID); // open network — no password
   {
     int attempts = 0;
