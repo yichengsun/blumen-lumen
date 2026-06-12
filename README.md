@@ -18,6 +18,9 @@
 - [ ] Document how many LED spokes there are and how many pixels per spoke
 - [ ] Add photos of the fully assembled control box once housing is built
 - [ ] Update the credit and web access plaque text here once finalized
+- [ ] **mDNS setup**: Rename NUC computer name to `blumenlumen` (Settings → System → About → Rename this PC), then students can reach the app at `http://blumenlumen.local` — no IT needed, works on all modern devices
+- [ ] **Stanford DNS entry**: Ask IT to add a DNS record `blumen.stanford.edu → NUC's reserved IP` for a permanent polished URL independent of the local network
+- [ ] **Eliminate port number from URL**: Update backend (`app.js`) to also serve the built React app statically on port 80, so students go to `http://blumenlumen.local` or `http://blumen.stanford.edu` with no `:3000` needed — also update `Controller.js` to use `window.location.hostname` instead of a hardcoded IP
 
 ### Low-Confidence Sections — Help Needed
 
