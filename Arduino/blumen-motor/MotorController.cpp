@@ -1,6 +1,6 @@
 #include "MotorController.h"
 #include <Arduino.h>
-#include <analogWrite.h>
+// analogWrite.h removed — analogWrite() is built into ESP32 core 3.x
 
 /*
    Stop:
