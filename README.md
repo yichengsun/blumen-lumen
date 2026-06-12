@@ -9,6 +9,7 @@
 
 ### Open TODOs
 - [ ] Fill in all IP addresses once IT provisions the dedicated WiFi network (see [Section 5](#5-network-topology))
+- [ ] Once IT confirms the ESP32's DHCP-reserved IP, update `blumen-lumen-ideo/iPad/ddl-ipad-backend/app.js` line: `const oscClientEngine = new Client('<ESP32-IP>', 8001)`
 - [ ] Identify the linear actuator model — check the physical unit for a label (brand, stroke length, force rating)
 - [x] Confirm which LED strip model is on the spokes — check the strip itself for markings (e.g. WS2812B, SK6812)
 - [ ] Recalibrate `FULL_PERIOD` in the Arduino sketch at the new location — 70,500ms was measured at the original IDEO installation; mechanical friction and actuator wear may have changed travel time
