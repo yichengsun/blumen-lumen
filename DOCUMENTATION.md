@@ -164,6 +164,7 @@ These are coordinated by the backend server sending OSC to both, but they are el
 | **Role** | Central computer — runs all software |
 | **OS** | Windows |
 | **Login** | Username: `Dream Lab` / Password: `123456` |
+| **WiFi MAC** | `TBD — run ipconfig /all in Windows terminal, look for "Wireless LAN adapter Wi-Fi"` |
 | **Network** | WiFi (to router) + Ethernet (direct to Advatek) |
 | **Static IP** | Configured at install time (see Network section) |
 
@@ -177,6 +178,7 @@ The NUC has two network interfaces: its WiFi adapter connects to the local route
 |---|---|
 | **Role** | Receives OSC commands over WiFi, drives motor controller |
 | **Board** | ESP32 DevKit v1 (Espressif ESP32-WROOM-32 module) |
+| **WiFi MAC** | `TBD — see "Getting the MAC address" below` |
 | **Power** | 5V via USB Micro → onboard 3.3V regulator |
 | **Language** | C++ (Arduino framework) |
 | **Source** | `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino` |
@@ -196,12 +198,42 @@ The NUC has two network interfaces: its WiFi adapter connects to the local route
 - `EN` button — resets the ESP32
 - `BOOT` button — holds bootloader mode for flashing
 
+**Arduino IDE setup (one-time):**
+1. Download Arduino IDE from https://www.arduino.cc/en/software (use 1.8.x or 2.x)
+2. Open **Tools → Board → Boards Manager**, search `esp32`, install **"esp32" by Espressif Systems**
+3. Go to **Tools → Board → ESP32 Arduino → ESP32 Dev Module**
+4. Go to **Tools → Port** and select the port that appears when the ESP32 is plugged in (on Mac: `/dev/cu.usbserial-XXXX`)
+
+> **Common pitfall:** The Serial Monitor must be **closed** before uploading — both cannot use the serial port at the same time. Close the monitor window, upload, then reopen it.
+
+> **Serial Monitor baud rate:** Always set to **115200** to match `Serial.begin(115200)` in the sketch. Using any other rate (e.g. 19200, 9600) produces garbage output.
+
 **To re-flash the ESP32:**
-1. Connect USB cable from ESP32 to your laptop
-2. Open Arduino IDE, install ESP32 board support (see Arduino IDE → Board Manager → search "esp32" by Espressif)
-3. Select board: `ESP32 Dev Module`
+1. Close the Serial Monitor if open
+2. Connect USB cable from ESP32 to your laptop
+3. Confirm board is set to `ESP32 Dev Module` and correct port is selected
 4. Open `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino`
-5. Click Upload
+5. Click Upload — the IDE will compile then flash; you'll see `Connecting...` then a progress bar
+
+**Getting the MAC address:**
+
+The MAC address is printed during boot but only after a successful WiFi connection. Since the sketch connects to the old IDEO network, the easiest way to read it without connecting to any network is to flash this minimal sketch first:
+
+```cpp
+#include <WiFi.h>
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+  WiFi.mode(WIFI_STA);
+  Serial.print("MAC address: ");
+  Serial.println(WiFi.macAddress());
+}
+
+void loop() {}
+```
+
+Open Serial Monitor at **115200 baud** — the MAC address prints immediately on boot. Record it for IT network registration, then re-flash the real `blumen-motor.ino` sketch.
 
 ---
 
@@ -369,13 +401,13 @@ Intel NUC (WiFi) ─────────────────────
 
 ### IP address table (update after IT sets up WiFi)
 
-| Device | Interface | IP Address | Notes |
-|---|---|---|---|
-| Intel NUC | WiFi | `TBD` | Needs static assignment |
-| Intel NUC | Ethernet | `TBD` | Same subnet as PixLite |
-| Advatek PixLite 16 | Ethernet | `TBD` | Configure via web UI |
-| ESP32 | WiFi | `TBD` | Hardcoded in sketch |
-| Phones/Laptops | WiFi | DHCP | Assigned by router |
+| Device | Interface | MAC Address | IP Address | Notes |
+|---|---|---|---|---|
+| Intel NUC | WiFi | `TBD` | `TBD` | Needs static assignment; get MAC via `ipconfig /all` |
+| Intel NUC | Ethernet | N/A | `TBD` | Same subnet as PixLite; not registered with IT |
+| Advatek PixLite 16 | Ethernet | N/A | `TBD` | Configure via web UI; not on Stanford network |
+| ESP32 | WiFi | `TBD` | `TBD` | Hardcoded in sketch; get MAC via test sketch |
+| Phones/Laptops | WiFi | personal | DHCP | Assigned by router; no registration needed |
 
 ### Ports in use
 
