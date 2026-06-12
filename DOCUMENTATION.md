@@ -182,7 +182,7 @@ The NUC has two network interfaces: its WiFi adapter connects to the local route
 |---|---|
 | **Role** | Receives OSC commands over WiFi, drives motor controller |
 | **Board** | ESP32 DevKit v1 (Espressif ESP32-WROOM-32 module) |
-| **WiFi MAC** | `TBD — see "Getting the MAC address" below` |
+| **WiFi MAC** | `24:0A:C4:EC:A7:64` |
 | **Power** | 5V via USB Micro → onboard 3.3V regulator |
 | **Language** | C++ (Arduino framework) |
 | **Source** | `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino` |
@@ -410,7 +410,7 @@ Intel NUC (WiFi) ─────────────────────
 | Intel NUC | WiFi | `TBD` | `TBD` | Needs static assignment; get MAC via `ipconfig /all` |
 | Intel NUC | Ethernet | N/A | `TBD` | Same subnet as PixLite; not registered with IT |
 | Advatek PixLite 16 | Ethernet | N/A | `TBD` | Configure via web UI; not on Stanford network |
-| ESP32 | WiFi | `TBD` | `TBD` | Hardcoded in sketch; get MAC via test sketch |
+| ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP, not yet reserved) | Register MAC with IT for a stable reserved IP |
 | Phones/Laptops | WiFi | personal | DHCP | Assigned by router; no registration needed |
 
 ### Ports in use

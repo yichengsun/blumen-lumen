@@ -70,6 +70,7 @@ MotorController motorController(DIRECTION_PIN, PWM_PIN, /*debugMode=*/true);
 
 float prevState = 0.0;  // current flower position (0.0 = closed, 1.0 = open)
 bool isMoving   = false;
+bool udpReady   = false; // true when Udp.begin() has been called on an active connection
 
 unsigned long previousMillis  = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 30000; // ms between WiFi reconnect attempts
@@ -119,6 +120,10 @@ void printStatus() {
 // Good student project for someone comfortable with C++ state machines.
 
 void motorMover(float targetState) {
+  if (abs(targetState - prevState) <= 0.001) {
+    logf("Already at %.2f — no move needed", targetState);
+    return;
+  }
   isMoving = true;
   float delta        = targetState - prevState;
   unsigned long t    = (unsigned long)abs(FULL_PERIOD * delta);
@@ -247,35 +252,32 @@ void setup() {
   if (WiFi.status() == WL_CONNECTED) {
     logf("WiFi connected");
     logf("IP  : %s", WiFi.localIP().toString().c_str());
-    logf("MAC : %s", WiFi.macAddress().c_str());
     logf("GW  : %s", WiFi.gatewayIP().toString().c_str());
     logf("RSSI: %d dBm", WiFi.RSSI());
-
-    // UDP
     Udp.begin(OSC_PORT);
+    udpReady = true;
     logf("Listening for OSC on UDP port %d", OSC_PORT);
-  } else {
-    logf("WARNING: WiFi not connected — OSC disabled. Serial commands still work.");
-    logf("MAC : %s", WiFi.macAddress().c_str());
-    logf("Check that this MAC is registered with Stanford IT.");
-  }
 
-  // NTP
-  logf("Syncing time via NTP...");
-  configTime(0, 0, "pool.ntp.org");
-  setTimezone("PST8PDT,M3.2.0/02:00:00,M11.1.0/02:00:00");
-  struct tm timeinfo;
-  int retries = 0;
-  while (!getLocalTime(&timeinfo) && retries < 10) {
-    delay(500);
-    retries++;
-    Serial.print(".");
+    // NTP requires internet — only attempt when WiFi is up
+    logf("Syncing time via NTP...");
+    configTime(0, 0, "pool.ntp.org");
+    setTimezone("PST8PDT,M3.2.0/02:00:00,M11.1.0/02:00:00");
+    struct tm timeinfo;
+    int retries = 0;
+    while (!getLocalTime(&timeinfo) && retries < 10) {
+      delay(500);
+      retries++;
+      Serial.print(".");
+    }
+    Serial.println();
+    if (retries < 10)
+      logf("Time synced: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    else
+      logf("NTP sync failed — schedule will not run. Will retry after WiFi reconnect.");
+  } else {
+    logf("WARNING: WiFi not connected — OSC and schedule disabled. Serial commands still work.");
+    logf("Check that MAC %s is registered with Stanford IT.", WiFi.macAddress().c_str());
   }
-  Serial.println();
-  if (retries < 10)
-    logf("Time synced: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-  else
-    logf("NTP sync failed — scheduled moves will not work until time is available");
 
   // Calibrate to known-closed position.
   // Retracts fully regardless of current position so prevState=0.0 is accurate.
@@ -294,19 +296,34 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // WiFi watchdog — attempt reconnect periodically if connection is lost
-  if (WiFi.status() != WL_CONNECTED && now - previousMillis >= WIFI_CHECK_INTERVAL) {
-    previousMillis = now;
-    logf("WiFi not connected — attempting reconnect to %s...", SSID);
-    WiFi.disconnect();
-    WiFi.begin(SSID);
+  // WiFi watchdog — reconnect on drop, restart UDP and NTP when back up
+  if (WiFi.status() != WL_CONNECTED) {
+    if (udpReady) {
+      udpReady = false;
+      logf("WiFi lost.");
+    }
+    if (now - previousMillis >= WIFI_CHECK_INTERVAL) {
+      previousMillis = now;
+      logf("Attempting reconnect to %s...", SSID);
+      WiFi.disconnect();
+      WiFi.begin(SSID);
+    }
+  } else if (!udpReady) {
+    // WiFi just came back up — restart UDP and re-sync NTP
+    logf("WiFi reconnected — IP: %s", WiFi.localIP().toString().c_str());
+    Udp.begin(OSC_PORT);
+    udpReady = true;
+    logf("OSC listening on port %d", OSC_PORT);
+    configTime(0, 0, "pool.ntp.org");
+    setTimezone("PST8PDT,M3.2.0/02:00:00,M11.1.0/02:00:00");
+    logf("NTP re-sync requested.");
   }
 
   handleSerialCommand();
   runSchedule();
 
-  // OSC receive — only if WiFi is up
-  if (WiFi.status() == WL_CONNECTED) {
+  // OSC receive — only if UDP is ready
+  if (udpReady) {
     OSCMessage msg;
     int size = Udp.parsePacket();
     if (size > 0) {
