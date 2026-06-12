@@ -1,3 +1,6 @@
+# macOS metadata — never commit
+.DS_Store
+
 # Original source repos — kept locally as archives, not tracked here
 blumen-lumen-ideo/
 ddl-ipad/
