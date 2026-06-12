@@ -168,7 +168,7 @@ These are coordinated by the backend server sending OSC to both, but they are el
 | **Role** | Central computer — runs all software |
 | **OS** | Windows |
 | **Login** | Username: `Dream Lab` / Password: `123456` |
-| **WiFi MAC** | `TBD — run ipconfig /all in Windows terminal, look for "Wireless LAN adapter Wi-Fi"` |
+| **WiFi MAC** | `F8:63:3F:26:55:D4` |
 | **Network** | WiFi (to router) + Ethernet (direct to Advatek) |
 | **Static IP** | Configured at install time (see Network section) |
 
@@ -407,7 +407,7 @@ Intel NUC (WiFi) ─────────────────────
 
 | Device | Interface | MAC Address | IP Address | Notes |
 |---|---|---|---|---|
-| Intel NUC | WiFi | `TBD` | `TBD` | Needs static assignment; get MAC via `ipconfig /all` |
+| Intel NUC | WiFi | `F8:63:3F:26:55:D4` | `TBD` (pending IT DHCP reservation) | Register MAC with IT for a stable reserved IP |
 | Intel NUC | Ethernet | N/A | `TBD` | Same subnet as PixLite; not registered with IT |
 | Advatek PixLite 16 | Ethernet | N/A | `TBD` | Configure via web UI; not on Stanford network |
 | ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP, not yet reserved) | Register MAC with IT for a stable reserved IP |
