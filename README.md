@@ -21,7 +21,7 @@
 - [ ] Update the credit and web access plaque text here once finalized
 - [ ] **mDNS setup**: Rename NUC computer name to `blumenlumen` (Settings → System → About → Rename this PC), then students can reach the app at `http://blumenlumen.local` — no IT needed, works on all modern devices
 - [ ] **Stanford DNS entry**: Ask IT to add a DNS record `blumen.stanford.edu → NUC's reserved IP` for a permanent polished URL independent of the local network
-- [ ] **Eliminate port number from URL**: Update backend (`app.js`) to also serve the built React app statically on port 80, so students go to `http://blumenlumen.local` or `http://blumen.stanford.edu` with no `:3000` needed — also update `Controller.js` to use `window.location.hostname` instead of a hardcoded IP
+- [ ] **Eliminate port number from URL**: Update backend (`app.js`) to also serve the built React app statically on port 80, so students go to `http://blumenlumen.local` or `http://blumen.stanford.edu` with no `:3000` needed (`Controller.js` already uses `window.location.hostname` — ✅ done)
 
 ### Low-Confidence Sections — Help Needed
 
@@ -436,11 +436,7 @@ Intel NUC (WiFi) ─────────────────────
 | **Runs on** | Intel NUC, served at `http://<NUC-IP>:3000` |
 | **Access** | Any browser on the local WiFi |
 
-**Key file to edit:** `src/Components/Controller.js` — line ~53 contains the backend URL:
-```js
-const socket = socketIOClient('http://<NUC-IP>:80');
-```
-This must be updated whenever the NUC's IP changes.
+**Key file:** `src/Components/Controller.js` — the Socket.IO connection uses `window.location.hostname` (dynamic), so it automatically connects back to whichever machine served the page. No IP editing needed.
 
 **UI sections:**
 - **Blumen Lumen tab**: Controls the flower
@@ -471,9 +467,11 @@ This server is the translator between the web UI and the physical hardware. It m
 
 **Key file:** `app.js`
 ```
-Lines to update with new IPs:
-  const oscClient = new Client('<NUC-IP>', 8000);       // MadMapper
+Line to update with new IP once IT provides it:
   const oscClientEngine = new Client('<ESP32-IP>', 8001); // Arduino motor
+
+Already correct — no IP editing needed:
+  const oscClient = new Client('127.0.0.1', 8000);     // MadMapper (same machine)
 ```
 
 **Socket.IO events it handles:**
@@ -529,29 +527,66 @@ MadMapper has saved programs for the flower (`js-`, `pk-`, `yc-dreamlab-blumen.m
 | **Libraries** | WiFi, WiFiUdp, OSCMessage (CNMAT), ESP32_AnalogWrite |
 | **IDE** | Arduino IDE 2.x |
 
-**Hardcoded values you must update for a new location:**
+**Values to update for a new location** (at the top of `blumen-motor.ino`):
 ```cpp
-char ssid[] = "YOUR_WIFI_SSID";
-char pass[] = "YOUR_WIFI_PASSWORD";
-const IPAddress motorStaticIP(x, x, x, x);   // this ESP32's IP
-const IPAddress gateway(x, x, x, 1);          // router IP
-const IPAddress outIp(x, x, x, x);            // NUC IP (not currently used for sending)
+const char SSID[] = "Stanford";       // WiFi network name (open, MAC-registered)
+const unsigned long FULL_PERIOD = 70500; // ms for actuator full travel — recalibrate on-site
+```
+The ESP32 uses DHCP (no static IP in sketch). WiFi is an open network — no password needed once the MAC is registered with Stanford IT.
+
+---
+
+### 6.4.1 Boot Behavior
+
+On every power-on or reset, the ESP32:
+1. Connects to Stanford WiFi (prints IP and MAC to Serial)
+2. Syncs time via NTP from `pool.ntp.org` (up to 10 retries; timezone PST/PDT)
+3. **Retracts to fully closed** — runs the motor for a full `FULL_PERIOD` regardless of current position, then sets `prevState = 0.0`
+
+Step 3 is intentional: it guarantees the ESP32's internal position tracking is accurate on startup. The flower always starts closed.
+
+> **What this means in practice:** Every time the NUC reboots or the ESP32 is reset, the flower will close. It will then re-open when the schedule fires or when a user manually opens it via the web app.
+
+---
+
+### 6.4.2 Ambient / Autonomous Behavior
+
+When no one is sending manual OSC commands, the ESP32 follows a daily schedule to open and close the flower on its own. This runs entirely on the ESP32 — no NUC or network needed once the sketch is flashed.
+
+**Daily schedule (PST/PDT):**
+
+| Time | Position | Description |
+|------|----------|-------------|
+| 8:45 am | 0.00 | Fully closed |
+| 9:00 am | 0.25 | Quarter open |
+| 9:15 am | 0.50 | Half open |
+| 9:30 am | 0.75 | Three-quarters open |
+| 9:59 am | 0.99 | Fully open |
+| 4:00 pm | 0.99 | Fully open (holds through afternoon) |
+| 4:15 pm | 0.75 | Three-quarters open |
+| 4:30 pm | 0.50 | Half open |
+| 4:59 pm | 0.25 | Quarter open |
+| 5:05 pm | 0.00 | Fully closed |
+
+The flower gradually opens from 8:45–9:59am as the d.school fills up, holds fully open through the afternoon, then gradually closes from 4:15–5:05pm.
+
+**How it works:**
+- The ESP32 checks the current time on every `loop()` iteration
+- When `hour:minute` matches a schedule entry and the flower isn't already at that position, it moves
+- If the motor is already moving (e.g. from a manual command), the schedule step is skipped until the next loop
+- Schedule requires NTP sync — if NTP failed on boot, the flower won't follow the schedule (Serial Monitor will show a warning)
+
+**To change the schedule**, edit the `SCHEDULE` array in `blumen-motor.ino`:
+```cpp
+const ScheduleEntry SCHEDULE[] = {
+  {8,  45, 0.00},   // { hour (24h), minute, position (0.0–1.0) }
+  {9,   0, 0.25},
+  // ... add or remove entries freely
+};
 ```
 
-**Autonomous daily schedule** (in `loop()`):
-```cpp
-moveAtTime(8, 45, 0.0);    // 8:45am  → fully closed
-moveAtTime(9, 0,  0.25);   // 9:00am  → 25% open
-moveAtTime(9, 15, 0.50);   // 9:15am  → 50% open
-moveAtTime(9, 30, 0.75);   // 9:30am  → 75% open
-moveAtTime(9, 59, 0.99);   // 9:59am  → fully open
-moveAtTime(16, 0, 0.99);   // 4:00pm  → fully open (hold)
-moveAtTime(16, 15, 0.75);  // 4:15pm  → 75% open
-moveAtTime(16, 30, 0.50);  // 4:30pm  → 50% open
-moveAtTime(16, 59, 0.25);  // 4:59pm  → 25% open
-moveAtTime(17, 5,  0.0);   // 5:05pm  → fully closed
-```
-The ESP32 syncs time from `pool.ntp.org` on boot and sets timezone to PST/PDT.
+**Manual control vs. schedule:**
+Manual OSC commands (from the web app) override the schedule immediately. The schedule will still fire at the next scheduled time — so if a student manually closes the flower at 10am, it will stay closed until 4pm when the schedule fires again at 0.99.
 
 ---
 
@@ -613,22 +648,28 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 
 **Startup sequence:**
 
-1. **Open MadMapper** on the NUC — load the correct `.mad` file from `blumen-lumen-ideo/MadMapper/Blumen Programs/`
-2. **Start the backend server:**
-   ```
-   cd blumen-lumen-ideo\iPad\ddl-ipad-backend
-   npm start
-   ```
-3. **Start the frontend:**
-   ```
-   cd ddl-ipad
-   npm start
-   ```
-   *(Or double-click `blumen-startup.bat` to do steps 2 and 3 automatically)*
+1. **Run `blumen-startup.bat`** — double-click it on the NUC Desktop (or in `blumen-lumen-ideo/Startup/`). This opens two windows:
+   - **"Blumen Backend"** — Node.js server on port 80
+   - **"Blumen Frontend"** — React dev server on port 3000
 
-4. **On your phone or laptop:** Connect to the dedicated WiFi, open a browser to `http://<NUC-IP>:3000`
+   > If either window shows a red error and exits, read the error message before closing it. The most common cause is port 80 requiring Administrator — right-click the `.bat` and choose **Run as administrator**.
 
-5. **Verify:** Toggle to Custom mode, drag the open slider — the flower should move. Try changing a behavior preset — LEDs should change.
+2. **MadMapper** should open automatically (it is configured as a Windows startup item). If it didn't launch, open it manually and load `yc-dreamlab-blumen.mad` from `blumen-lumen-ideo/MadMapper/Blumen Programs/`.
+
+3. **On your phone or laptop:** Connect to the Stanford WiFi, open a browser to `http://<NUC-IP>:3000`
+
+4. **Verify:** Toggle to Custom mode, drag the open slider — the flower should move. Try changing a behavior preset — LEDs should change.
+
+> **Note on the flower's startup state:** When the ESP32 powers on or resets, it **retracts to fully closed** as a calibration step (takes ~70 seconds). The web app slider will start at 0% to match. This is intentional — see [Section 6.4.1](#641-boot-behavior).
+
+**To start manually** (if the `.bat` isn't available or needs debugging):
+```
+cd blumen-lumen-ideo\iPad\ddl-ipad-backend
+npm start
+
+cd blumen-lumen-ideo\iPad\ddl-ipad
+npm start
+```
 
 ---
 
@@ -640,7 +681,7 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 |---|---|
 | Change LED color palette | `ddl-ipad/src/Controllers/States.js` — edit `colorPaletteArray` |
 | Add a new behavior preset button | `ddl-ipad/src/Components/BlumenLumenContent.js` — add a `<Button>` and update backend logic |
-| Change the daily schedule | `blumen-motor.ino` — edit the `moveAtTime()` calls in `loop()` |
+| Change the daily schedule | `blumen-motor.ino` — edit the `SCHEDULE[]` array near the top of the file |
 | Adjust full-open travel time | `blumen-motor.ino` — change `FULL_PERIOD` (currently 70500ms) |
 | Send OSC from a custom script | See [OSC API](#7-osc-api-reference) — any language with an OSC library works |
 | Add a physical sensor | Wire to an unused ESP32 GPIO, read in `loop()`, send OSC or respond directly |
