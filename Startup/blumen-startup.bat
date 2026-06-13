@@ -1,10 +1,10 @@
 @ECHO OFF
 
 :: Blumen Lumen startup script — runs on Intel NUC at boot
-:: Starts the Node.js backend and React frontend servers.
+:: Starts the Node.js backend (port 80), which also serves the pre-built React app.
 :: After this runs, manually open MadMapper with yc-dreamlab-blumen.mad
 ::
-:: If servers need to run from a different folder, update the two CD paths below.
+:: If the repo moves, update the CD path below.
 :: Full system docs: https://github.com/yichengsun/blumen-lumen
 
 TITLE Blumen Startup
