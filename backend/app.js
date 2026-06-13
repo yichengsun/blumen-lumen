@@ -1,14 +1,25 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 
-// Serve built React app — run `npm run build` in frontend/ after any frontend changes
+// Serve built React app — run `npm run build` in frontend/ after any frontend changes.
+// frontend/build/ is gitignored (generated, not committed).
+// On first run after a fresh clone, build it once:
+//   cd frontend && npm install && npm run build
 const buildPath = path.join(__dirname, '..', 'frontend', 'build');
+const buildIndex = path.join(buildPath, 'index.html');
+if (!fs.existsSync(buildIndex)) {
+    console.error('ERROR: frontend/build/index.html not found.');
+    console.error('Run this once before starting the backend:');
+    console.error('  cd frontend && npm install && npm run build');
+    process.exit(1);
+}
 app.use(express.static(buildPath));
 app.get('*', (req, res) => {
-    res.sendFile(path.join(buildPath, 'index.html'));
+    res.sendFile(buildIndex);
 });
 
 const { Client } = require('node-osc');

@@ -11,7 +11,7 @@
  * OSC API (listen on port 8001):
  *   Address : /1/fader1
  *   Value   : float  0.0 = fully closed  →  1.0 = fully open
- *   Sender  : Intel NUC running ddl-ipad-backend/app.js
+ *   Sender  : Intel NUC running backend/app.js
  *
  * Serial commands (open Serial Monitor at 115200 baud):
  *   open        → move to 1.0 (fully open)
@@ -53,7 +53,7 @@ const ScheduleEntry SCHEDULE[] = {
   {9,  15, 0.50},  // 9:15am — half open
   {9,  30, 0.75},  // 9:30am — three-quarters open
   {9,  59, 0.99},  // 9:59am — fully open
-  {16,  0, 0.99},  // 4:00pm — fully open (hold through evening)
+  {16,  0, 0.99},  // 4:00pm — fully open (hold through afternoon)
   {16, 15, 0.75},  // 4:15pm — three-quarters
   {16, 30, 0.50},  // 4:30pm — half
   {16, 59, 0.25},  // 4:59pm — quarter

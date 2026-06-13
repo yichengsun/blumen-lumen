@@ -13,7 +13,13 @@ ECHO Starting Blumen services...
 :: The backend serves the pre-built React app on port 80.
 :: Phones connect to http://<NUC-IP> — no port number needed.
 ::
-:: If you update frontend code, rebuild before restarting:
+:: FIRST RUN (after cloning): frontend\build\ must exist before starting the backend.
+:: If it doesn't exist, run this once in a regular (non-admin) terminal, then re-run this script:
+::   cd C:\Users\Dream Lab\blumen-lumen\frontend
+::   npm install
+::   npm run build
+::
+:: After any frontend code change, rebuild before restarting:
 ::   cd C:\Users\Dream Lab\blumen-lumen\frontend
 ::   npm run build
 
