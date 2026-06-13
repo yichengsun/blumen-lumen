@@ -7,8 +7,8 @@ const { Client } = require('node-osc');
 // regardless of what IP the NUC is assigned on the network.
 const oscClient = new Client('127.0.0.1', 8000);
 
-// TODO: Replace TBD with ESP32's DHCP-reserved IP once Stanford IT provides it.
-const oscClientEngine = new Client('TBD', 8001);
+// ESP32 current IP: 10.34.84.37 (DHCP — update once Stanford IT reserves it)
+const oscClientEngine = new Client('10.34.84.37', 8001);
 
 // TODO (multi-user): Each connected client gets its own independent blumen state
 // object, so two phones can issue conflicting motor commands simultaneously.

@@ -14,14 +14,14 @@ ECHO Starting Blumen services...
 SET BROWSER=none
 
 ECHO Starting backend server (1/2)...
-CD C:\Users\Dream Lab\Documents\GitHub\ddl-ipad-backend
+CD "C:\Users\Dream Lab\blumen-lumen\backend"
 START "Blumen Backend" cmd /k "npm start"
 
 :: Small delay so the backend is listening before the frontend connects
 TIMEOUT /T 3 /NOBREAK >nul
 
 ECHO Starting frontend server (2/2)...
-CD C:\Users\Dream Lab\Documents\GitHub\ddl-ipad
+CD "C:\Users\Dream Lab\blumen-lumen\frontend"
 START "Blumen Frontend" cmd /k "npm start"
 
 ECHO.

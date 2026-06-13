@@ -54,3 +54,17 @@
     margin-top: -5px;
     position: relative;
 }
+
+@media (max-width: 480px) {
+    .BlumenLumenContent {
+        width: 92vw;
+    }
+    .BehaviourPresetButtons div {
+        width: 44%;
+    }
+    .BehaviourPreset,
+    .Blumenphase,
+    .ColorPickerSection {
+        margin-bottom: 40px;
+    }
+}

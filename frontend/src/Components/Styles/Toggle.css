@@ -11,6 +11,12 @@
     height: 60px;
 }
 
+@media (max-width: 480px) {
+    .Toggle {
+        width: min(250px, 80vw);
+    }
+}
+
 .Toggle p {
     font-family: 'Gotham';
     text-transform: uppercase;

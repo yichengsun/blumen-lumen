@@ -6,3 +6,11 @@
     margin: 0;
     height: 107vw;
 }
+
+@media (max-width: 480px) {
+    .Content {
+        height: auto;
+        min-height: calc(100vh - 80px);
+        padding-bottom: 40px;
+    }
+}

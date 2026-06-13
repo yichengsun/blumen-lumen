@@ -16,3 +16,12 @@
 .TimerMessage p {
     width: 100px;
 }
+
+@media (max-width: 480px) {
+    .TimerMessage {
+        position: static;
+        justify-content: center;
+        margin-top: -20px;
+        margin-bottom: 10px;
+    }
+}

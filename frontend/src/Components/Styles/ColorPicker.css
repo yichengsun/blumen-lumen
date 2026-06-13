@@ -10,3 +10,15 @@
     height: 90px;
     margin: 2px 5px 0 2px;
 }
+
+@media (max-width: 480px) {
+    .ColorPicker {
+        gap: 8px;
+        margin: 10px auto;
+    }
+    .ColorPicker div {
+        width: 36vw;
+        height: 36vw;
+        margin: 0;
+    }
+}
