@@ -670,6 +670,25 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 
 > **Startup state:** The ESP32 always retracts to closed when powered on (~70 seconds calibration step). The web app slider starts at 0% to match. This is intentional.
 
+### Windows autostart configuration
+
+The NUC is set up to run automatically without anyone needing to log in and start things manually. Two items live in the Windows Startup folder (`shell:startup` — press Win+R, type `shell:startup`, hit Enter to open it):
+
+| Shortcut name | What it runs | Notes |
+|---|---|---|
+| `lumen-startup` | `Startup/blumen-startup.bat` (as Administrator) | Starts the Node.js backend on port 80 |
+| `yc-madmapper` | MadMapper application | Opens MadMapper with the last-used `.mad` file |
+
+If either stops auto-launching, check that its shortcut is still in `shell:startup` and that the target path is correct.
+
+### Automatic power on/off (9am–5pm)
+
+The NUC is configured to power on and shut down automatically so the sculpture runs only during d.school hours. This is most likely set up in the **BIOS/UEFI** (look for "Scheduled Power On" or "RTC Wake" under Power settings), though it may alternatively be a Windows Task Scheduler task.
+
+> **If the NUC doesn't power on automatically:** Enter BIOS/UEFI on boot (usually F2 or Delete key), find the scheduled power / RTC wake setting, and confirm it's enabled and set to the right time.
+
+> **If you need to change the hours:** Update both the power-on schedule (BIOS or Task Scheduler) and the ESP32's `SCHEDULE[]` array in `blumen-motor.ino` so they stay in sync. The flower's autonomous schedule currently opens at 9am and closes at 5pm to match.
+
 **Repository layout:**
 
 ```
