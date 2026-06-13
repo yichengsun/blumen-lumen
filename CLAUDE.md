@@ -1,75 +1,90 @@
 # Blumen Lumen — Claude Code Instructions
 
 Kinetic flower sculpture donated by YC Sun to Stanford d.school in 2026.
-Full docs and code: https://github.com/yichengsun/blumen-lumen
+Full docs: `README.md` (this repo) or https://github.com/yichengsun/blumen-lumen
 
-## This repo IS the canonical source
+## This repo is the canonical source
 
-Everything lives in `yichengsun/blumen-lumen` — one repo, one branch (`main`), no dependencies on FoldHaus or IDEO org access. The old repos (`FoldHaus/blumen-lumen-ideo`, `ideo/ddl-ipad`) are archived references only.
+Everything lives in `yichengsun/blumen-lumen` on `main`. The old repos
+(`FoldHaus/blumen-lumen-ideo`, `ideo/ddl-ipad`) are archived references only.
 
 ## Directory layout
 
 ```
 blumen-lumen/
-├── DOCUMENTATION.md / README.md   # Student-facing docs
-├── CLAUDE.md                      # This file — Claude Code context
-├── Arduino/blumen-motor/          # ESP32 motor controller sketch
+├── README.md                          # Full technical documentation
+├── CLAUDE.md                          # This file
+├── Arduino/blumen-motor/              # ESP32 motor controller sketch
 │   ├── blumen-motor.ino
 │   ├── MotorController.h
 │   └── MotorController.cpp
-├── backend/                       # Node.js + Socket.IO server (port 80)
-│   └── app.js
-├── frontend/                      # React web app (port 3000)
-│   └── src/Components/Controller.js
-├── MadMapper/                     # MadMapper .mad program files
-│   └── Blumen Programs/yc-dreamlab-blumen.mad
+├── backend/                           # Node.js + Socket.IO server (port 80)
+│   └── app.js                         # Also serves frontend/build/ statically
+├── frontend/                          # React web app source
+│   ├── src/Components/Controller.js   # Socket.IO client, slider, mode toggle
+│   ├── src/Controllers/States.js      # Color palette data
+│   └── build/                         # Pre-built output — what the backend serves
+├── MadMapper/Blumen Programs/
+│   └── yc-dreamlab-blumen.mad         # Active MadMapper program
 └── Startup/
-    └── blumen-startup.bat         # NUC autostart script
+    └── blumen-startup.bat             # Run as Administrator — starts backend on port 80
 ```
 
 ## Branching
 
-- All changes go to `main` of `yichengsun/blumen-lumen`
-- No other branches or repos to maintain
+All changes go to `main`. No other branches or repos to maintain.
 
 ## Key files
 
 | File | Purpose |
 |------|---------|
 | `Arduino/blumen-motor/blumen-motor.ino` | ESP32 sketch — WiFi, OSC listener, motor control, NTP schedule |
-| `backend/app.js` | Node backend — Socket.IO → OSC bridge |
+| `backend/app.js` | Node backend — Socket.IO → OSC bridge; serves `frontend/build/` |
 | `frontend/src/Components/Controller.js` | React UI — slider, mode toggle, color palette |
-| `Startup/blumen-startup.bat` | NUC startup script — opens backend + frontend windows |
+| `frontend/src/Controllers/States.js` | Color palette RGB values |
+| `Startup/blumen-startup.bat` | NUC startup script |
 
-## IPs and ports (pending Stanford IT DHCP reservations)
+## Confirmed IPs and ports
 
 | Device | IP | Port |
 |--------|----|------|
-| Intel NUC (WiFi) | TBD | — |
-| Intel NUC (Ethernet to PixLite) | TBD | — |
-| ESP32 motor controller | TBD (DHCP-reserved) | 8001 (OSC in) |
-| Advatek PixLite | TBD | — |
-| MadMapper (on NUC) | 127.0.0.1 | 8000 (OSC in) |
-| Node backend (on NUC) | — | 80 (HTTP/Socket.IO) |
-| React frontend (on NUC) | — | 3000 (HTTP) |
+| Intel NUC (WiFi) | `10.34.87.197` (DHCP — pending IT reservation) | — |
+| Intel NUC (Ethernet to PixLite) | `192.168.0.1` (static) | — |
+| ESP32 motor controller | `10.34.84.37` (DHCP — pending IT reservation) | 8001 (OSC in) |
+| Advatek PixLite | `192.168.0.50` (static) | — |
+| MadMapper (on NUC) | `127.0.0.1` | 8000 (OSC in), 9000 (OSC feedback) |
+| Node backend (on NUC) | — | 80 (HTTP + Socket.IO + static React) |
 
-Once IT provides the ESP32's reserved IP, update `backend/app.js`:
-```js
-const oscClientEngine = new Client('<ESP32-IP>', 8001);
+## How to start the system
+
+1. Right-click `Startup/blumen-startup.bat` → Run as administrator
+   - Opens **one** CMD window: "Blumen Backend" (port 80)
+2. MadMapper opens automatically (Windows startup item). If not, open it and load `yc-dreamlab-blumen.mad`.
+3. Students visit `http://10.34.87.197` on any phone or laptop — no port number.
+
+## Frontend build workflow
+
+The backend serves the **pre-built** React app. After any frontend code change:
+
 ```
-Everything else is already correct — MadMapper uses `127.0.0.1`, frontend uses `window.location.hostname`.
+cd frontend
+npm run build
+```
 
-## Startup behavior (important)
+Then restart the backend. Do NOT run `npm start` in the frontend — there is no separate frontend dev server.
 
-- **`blumen-startup.bat`**: opens two named CMD windows — "Blumen Backend" (port 80) and "Blumen Frontend" (port 3000). Must be run as Administrator for port 80 to bind.
-- **MadMapper**: launches automatically via Windows startup items. If not open, load `MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` manually.
-- **ESP32 on boot**: always retracts to fully closed (~70s), then starts NTP schedule. UI slider initializes at 0 to match.
+## ESP32 notes
 
-## Pending TODOs (high priority)
+- On boot: always retracts to fully closed (~70s calibration), then starts NTP schedule
+- Motor movement is blocking (`delay()`) — ESP32 cannot receive new OSC during a move
+- Serial commands via Arduino IDE Monitor (115200 baud): `open`, `close`, `0.5`, `status`
+- WiFi watchdog built in — auto-reconnects on drop
 
-- Fill in MAC addresses and DHCP-reserved IPs in DOCUMENTATION.md
-- Update `backend/app.js` `oscClientEngine` IP with ESP32's reserved IP once IT provides it
-- Flash `Arduino/blumen-motor/blumen-motor.ino` to ESP32 via USB
-- Recalibrate `FULL_PERIOD` in `blumen-motor.ino` at the Stanford location (currently 70500ms from IDEO install)
-- Rename NUC computer name to `blumenlumen` for mDNS (`http://blumenlumen.local`)
-- Update `Startup/blumen-startup.bat` CD paths to match wherever the repo is cloned on the NUC
+## Pending actions (not code changes)
+
+1. Ask Stanford IT to reserve NUC MAC `F8:63:3F:26:55:D4` → current DHCP IP `10.34.87.197`
+2. Ask Stanford IT to reserve ESP32 MAC `24:0A:C4:EC:A7:64` → current DHCP IP `10.34.84.37`
+   - If IT assigns a different IP, update `backend/app.js` line 21: `const oscClientEngine = new Client('<new-IP>', 8001);`
+3. Find linear actuator model label on the physical unit
+4. (Optional) Rename NUC to `blumenlumen` → students use `http://blumenlumen.local`
+5. (Optional) Ask IT for `blumen.stanford.edu` DNS entry

@@ -1,46 +1,28 @@
 # Blumen Lumen — Technical Documentation
 
-> A kinetic light sculpture by IDEO. Originally built ~2017, reinstalled at Stanford 2026.
+> A kinetic light sculpture originally built by FoldHaus Collective, premiered Burning Man 2014.
+> Donated to Stanford Design School (d.school) by Yicheng (YC) Sun in 2026.
 > This document is for students who want to understand, operate, or extend the system.
+
+**System status: Fully working.** All subsystems confirmed operational at Stanford d.school.
 
 ---
 
-## Document Status
+## Open TODOs
 
-### Open TODOs
-- [ ] Fill in all IP addresses once IT provisions the dedicated WiFi network (see [Section 5](#5-network-topology))
-- [ ] Once IT confirms the ESP32's DHCP-reserved IP, update `blumen-lumen-ideo/iPad/ddl-ipad-backend/app.js` line: `const oscClientEngine = new Client('<ESP32-IP>', 8001)`
+- [ ] Ask Stanford IT to reserve NUC WiFi IP for MAC `F8:63:3F:26:55:D4` (currently `10.34.87.197` by DHCP — will break if it changes)
+- [ ] Ask Stanford IT to reserve ESP32 IP for MAC `24:0A:C4:EC:A7:64` (currently `10.34.84.37`) — if a different IP is assigned, update `backend/app.js` line 21
 - [ ] Identify the linear actuator model — check the physical unit for a label (brand, stroke length, force rating)
-- [x] Confirm which LED strip model is on the spokes — check the strip itself for markings (e.g. WS2812B, SK6812)
-- [ ] Recalibrate `FULL_PERIOD` in the Arduino sketch at the new location — 70,500ms was measured at the original IDEO installation; mechanical friction and actuator wear may have changed travel time
-- [x] Verify Cytron MD30C R2 jumpers — confirmed `EXT PWM` + `INT PDT`
-- [ ] Confirm MadMapper OSC cue names match what the backend sends — open `yc-dreamlab-blumen.mad` in MadMapper and verify the OSC triggers are `/2/circular_p0`, `/2/stripes_p0`, etc.
-- [ ] Document the actual Art-Net universe assignments in MadMapper and the PixLite config
-- [ ] Document how many LED spokes there are and how many pixels per spoke
-- [ ] Add photos of the fully assembled control box once housing is built
-- [ ] Update the credit and web access plaque text here once finalized
-- [ ] **mDNS setup**: Rename NUC computer name to `blumenlumen` (Settings → System → About → Rename this PC), then students can reach the app at `http://blumenlumen.local` — no IT needed, works on all modern devices
-- [ ] **Stanford DNS entry**: Ask IT to add a DNS record `blumen.stanford.edu → NUC's reserved IP` for a permanent polished URL independent of the local network
-- [ ] **Eliminate port number from URL**: Update backend (`app.js`) to also serve the built React app statically on port 80, so students go to `http://blumenlumen.local` or `http://blumen.stanford.edu` with no `:3000` needed (`Controller.js` already uses `window.location.hostname` — ✅ done)
-
-### Low-Confidence Sections — Help Needed
-
-These are areas where the documentation is based on code + photos but not confirmed hands-on. Answering these questions will sharpen the docs.
-
-| Section | What I'm Unsure About | How to Verify |
-|---|---|---|
-| **LED strips** | Strip model — Based on the era (~2017), visual confirmation of the number of solder pads: WS2813A/B, 5V. In the housing it is hooked up to a PixLite Long Range receiver|
-| **NUC network interfaces** | The NUC needs to be on WiFi (for router/Arduino) AND Ethernet (for PixLite) simultaneously. I assumed NUC has both active. If the NUC only has one Ethernet port and no WiFi, you'll need a small switch. | On the NUC, open Network Settings and check how many active adapters there are. |
-| **Advatek ↔ NUC connection** | You said the PixLite connects "directly to the NUC via ethernet." If it's truly a direct cable (no switch), the NUC's Ethernet IP must be on the same subnet as the PixLite's IP, and the WiFi IP must be on the router's different subnet. This is the expected setup but worth confirming it's working. | Open MadMapper → Output settings and confirm it shows the PixLite as detected/connected. |
-| ~~**Cytron PWM jumper**~~ | ✅ Confirmed: `EXT PWM` + `INT PDT` | — |
-| **Motor direction vs. open/close** | Code says `extend = DIR pin LOW` (flower opens) and `retract = DIR pin HIGH` (flower closes). This matches the code comments but I don't know if the actuator is mounted in the standard or inverted orientation. If the flower closes when you send `1.0`, the directions are swapped. | Send `0.5` via the web app slider from a known closed state — does it open? If not, swap GPIO 27 HIGH/LOW in the code. |
-| **MadMapper OSC cues** | I listed `/2/circular_p0` etc. based on what the backend *sends*, but I haven't read the `.mad` file to confirm MadMapper is actually configured to *receive* those exact addresses. | In MadMapper with `yc-dreamlab-blumen.mad` open: go to OSC triggers panel and screenshot the configured addresses. |
-| ~~**Power supply amperage**~~ | ✅ Confirmed: Mean Well S-300-12 (12V/25A) and S-300-5 (5V/60A) | — |
+- [ ] Add photos of the fully assembled control box to `Datasheets/` once housing is built
+- [ ] Update plaque text once finalized
+- [ ] **mDNS (optional)**: Rename NUC to `blumenlumen` (Settings → System → About → Rename this PC) — students can then use `http://blumenlumen.local` instead of an IP
+- [ ] **Stanford DNS (optional)**: Ask IT to add `blumen.stanford.edu → NUC reserved IP`
 
 ---
 
 ## Table of Contents
-1. [What Is Blumen Lumen?](#1-what-is-blumen-lumen)
+
+1. [About This Project](#1-about-this-project)
 2. [System Architecture](#2-system-architecture)
 3. [Hardware Components](#3-hardware-components)
 4. [Wiring & Signal Flow](#4-wiring--signal-flow)
@@ -57,12 +39,12 @@ These are areas where the documentation is based on code + photos but not confir
 
 ### Origin
 
-Blumen Lumen was created by the **[FoldHaus Collective](https://www.foldhaus.com/blumen-lumen)**, an art and engineering collective. The project originally debuted at **Burning Man 2014** as a garden of ten giant origami flowers, 15–22 feet tall, that bloomed in response to people's presence and moved with the wind.
+Blumen Lumen was created by the **[FoldHaus Collective](https://www.foldhaus.com/blumen-lumen)**. It debuted at **Burning Man 2014** as a garden of ten giant origami flowers, 15–22 feet tall, that bloomed in response to people's presence and moved with the wind.
 
 > *"A garden of ten giant origami flowers that bloom in the presence of people and move with the wind, creating a magical experience for their visitors."*
 > — FoldHaus Collective
 
-The flowers are structurally based on an adapted version of the **Miura-ori fold pattern**, a well-known origami tessellation. Each flower is built from corrugated polypropylene petals, a steel and aluminum internal mechanism, PVC pipe stems bent using custom molds, and a linear actuator that drives the open/close motion. The petal geometry was CNC-routed from corrugated plastic sheet.
+The flowers are built from corrugated polypropylene petals, a steel and aluminum internal mechanism, PVC pipe stems, and a linear actuator that drives the open/close motion. The petal geometry was CNC-routed from corrugated plastic sheet, using a Miura-ori fold pattern.
 
 **Collaborators and supporters:** Black Rock Arts Foundation, IDEO, Kickstarter campaign backers.
 
@@ -81,40 +63,36 @@ Additional appearances: Las Vegas private event, NIMBY, SuperHero Street Fair, T
 
 ### This Unit's History
 
-One of the original ten flowers was acquired by **IDEO** (Palo Alto, CA), where it was displayed in the studio for approximately a decade following Burning Man 2014. During that time, IDEO's design and engineering team adapted it with WiFi-connected electronics, addressable LEDs, and the web-based control interface documented here.
+One flower was acquired by **IDEO** (Palo Alto, CA) after Burning Man 2014. IDEO's team adapted it with WiFi-connected electronics, addressable LEDs, and the web-based control interface documented here. In 2026, **Stanford lecturer Yicheng (YC) Sun** donated it to the **Stanford Design School (d.school)**.
 
-In 2026, **Stanford lecturer Yicheng (YC) Sun** donated the sculpture to the **Stanford Design School (d.school)**, with the hope that it will be maintained and built upon by students. This documentation exists to make that possible.
+### What It Does
 
-### What It Does (Technical Summary)
-
-Blumen Lumen ("flower light") is a large-scale kinetic sculpture — a plastic flower mounted overhead that opens and closes like an umbrella, with LED strips running through each spoke that animate with color. It is interactive: visitors connect to a local WiFi network and control the flower's position, lighting patterns, and color palette through a web app on their phone.
+Blumen Lumen is a large-scale kinetic sculpture: a plastic flower overhead that opens and closes like an umbrella, with LED strips in each spoke that animate with color. Visitors connect to the local WiFi and control it from a web app.
 
 - Opens and closes mechanically via a linear actuator (0–100% open)
 - Animates addressable LED strips with programmable patterns and color palettes
-- Accepts real-time control commands from any browser on the local network
-- Follows an autonomous daily schedule when no one is interacting (opens in the morning, closes in the evening)
+- Accepts real-time control from any browser on the local network
+- Follows an autonomous daily schedule when nobody is interacting (opens at 9am, closes at 5pm)
 
 ---
 
 ## 2. System Architecture
 
-The full data flow from user interaction to physical motion:
-
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        LOCAL WiFi NETWORK                           │
+│                        STANFORD WiFi NETWORK                        │
 │                                                                     │
 │  ┌──────────────┐    Socket.IO    ┌──────────────────────────────┐  │
 │  │ Phone/Laptop │ ─────────────► │  Intel NUC (Windows PC)      │  │
 │  │  Web Browser │                │                              │  │
-│  │  port 3000   │                │  ┌────────────────────────┐  │  │
-│  └──────────────┘                │  │  ddl-ipad (React)      │  │  │
-│                                  │  │  port 3000             │  │  │
+│  │  port 80     │                │  ┌────────────────────────┐  │  │
+│  └──────────────┘                │  │  React app (built)     │  │  │
+│                                  │  │  served by backend     │  │  │
 │                                  │  └────────────────────────┘  │  │
 │                                  │                              │  │
 │                                  │  ┌────────────────────────┐  │  │
-│                                  │  │  ddl-ipad-backend      │  │  │
-│                                  │  │  (Node.js) port 80     │  │  │
+│                                  │  │  Node.js backend       │  │  │
+│                                  │  │  port 80 (HTTP + WS)   │  │  │
 │                                  │  └───────────┬────────────┘  │  │
 │                                  │              │               │  │
 │                                  │    OSC UDP   │               │  │
@@ -129,7 +107,7 @@ The full data flow from user interaction to physical motion:
 │                                                 │ (Ethernet)       │
 │  ┌─────────────────────────┐                    │                  │
 │  │  ESP32 (Arduino)        │                    ▼                  │
-│  │  static IP :8001        │         ┌──────────────────────────┐  │
+│  │  port 8001              │         ┌──────────────────────────┐  │
 │  │  GPIO 27 → DIR          │         │  Advatek PixLite 16      │  │
 │  │  GPIO 13 → PWM          │         │  (Ethernet, direct cable │  │
 │  └────────────┬────────────┘         │   to NUC)                │  │
@@ -139,7 +117,7 @@ The full data flow from user interaction to physical motion:
                 ▼                                   ▼
     ┌─────────────────────┐           ┌──────────────────────────────┐
     │  Cytron MD30C R2    │           │  LED Strips on Spokes        │
-    │  30A Motor Driver   │           │  (WS2812B-type, addressable) │
+    │  30A Motor Driver   │           │  (WS2812B, 12 × 70 pixels)   │
     └──────────┬──────────┘           └──────────────────────────────┘
                │
                ▼
@@ -151,11 +129,12 @@ The full data flow from user interaction to physical motion:
 ```
 
 ### Key insight for hackers
-There are **two separate control systems** running in parallel:
-- **Motor system**: ESP32 → Cytron → Linear Actuator (controls physical open/close)
-- **Lighting system**: MadMapper → Advatek PixLite → LED strips (controls color/animation)
 
-These are coordinated by the backend server sending OSC to both, but they are electrically and computationally independent. You can hack one without touching the other.
+There are **two separate control systems** running in parallel:
+- **Motor system**: ESP32 → Cytron → Linear Actuator (physical open/close)
+- **Lighting system**: MadMapper → Advatek PixLite → LED strips (color/animation)
+
+They are coordinated by the backend, but electrically and computationally independent. You can hack one without touching the other.
 
 ---
 
@@ -169,10 +148,11 @@ These are coordinated by the backend server sending OSC to both, but they are el
 | **OS** | Windows |
 | **Login** | Username: `Dream Lab` / Password: `123456` |
 | **WiFi MAC** | `F8:63:3F:26:55:D4` |
-| **Network** | WiFi (to router) + Ethernet (direct to Advatek) |
-| **Static IP** | Configured at install time (see Network section) |
+| **WiFi IP** | `10.34.87.197` (DHCP — reserve with IT) |
+| **Ethernet IP** | `192.168.0.1` (static, manual — direct link to PixLite only) |
+| **Network** | WiFi (Stanford network) + Ethernet (direct to PixLite) simultaneously |
 
-The NUC has two network interfaces: its WiFi adapter connects to the local router (same network as phones/laptops and the Arduino), and its Ethernet port connects directly to the Advatek PixLite for Art-Net communication.
+Both network interfaces are active at the same time. **Do not set Ethernet to DHCP** — the PixLite won't be reachable if you do.
 
 ---
 
@@ -183,49 +163,59 @@ The NUC has two network interfaces: its WiFi adapter connects to the local route
 | **Role** | Receives OSC commands over WiFi, drives motor controller |
 | **Board** | ESP32 DevKit v1 (Espressif ESP32-WROOM-32 module) |
 | **WiFi MAC** | `24:0A:C4:EC:A7:64` |
+| **WiFi IP** | `10.34.84.37` (DHCP — reserve with IT) |
 | **Power** | 5V via USB Micro → onboard 3.3V regulator |
 | **Language** | C++ (Arduino framework) |
-| **Source** | `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino` |
+| **Source** | `Arduino/blumen-motor/blumen-motor.ino` |
 | **Datasheet** | https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32_datasheet_en.pdf |
-| **Arduino Docs** | https://docs.espressif.com/projects/arduino-esp32/en/latest/ |
 
 **Pin assignments:**
 
 | ESP32 GPIO | Connected To | Purpose |
 |---|---|---|
-| GPIO 27 | Cytron DIR pin | Motor direction (HIGH = retract, LOW = extend) |
+| GPIO 27 | Cytron DIR pin | Motor direction (HIGH = retract/close, LOW = extend/open) |
 | GPIO 13 | Cytron PWM pin | Motor speed (0 = stop, 255 = full speed) |
 | GND | Cytron GND | Shared ground |
 | USB Micro | USB wall adapter | Power only |
 
-**Built-in physical controls** (on the DevKit board itself):
+**Built-in physical controls:**
 - `EN` button — resets the ESP32
 - `BOOT` button — holds bootloader mode for flashing
 
+**Serial commands** (open Serial Monitor at 115200 baud while connected via USB):
+
+| Command | Action |
+|---|---|
+| `open` | Move to fully open (1.0) |
+| `close` | Move to fully closed (0.0) |
+| `0.5` | Move to any position, e.g. 50% |
+| `status` | Print current position, WiFi info, and time |
+
+These are useful for debugging without needing the web app or network.
+
 **Arduino IDE setup (one-time):**
-1. Download Arduino IDE from https://www.arduino.cc/en/software (use 1.8.x or 2.x)
+1. Download Arduino IDE from https://www.arduino.cc/en/software
 2. Open **Tools → Board → Boards Manager**, search `esp32`, install **"esp32" by Espressif Systems**
 3. Go to **Tools → Board → ESP32 Arduino → ESP32 Dev Module**
-4. Go to **Tools → Port** and select the port that appears when the ESP32 is plugged in (on Mac: `/dev/cu.usbserial-XXXX`)
+4. Go to **Tools → Port** and select the port that appears when ESP32 is plugged in
 
-> **Common pitfall:** The Serial Monitor must be **closed** before uploading — both cannot use the serial port at the same time. Close the monitor window, upload, then reopen it.
+> **Pitfall:** The Serial Monitor must be **closed** before uploading — they share the serial port. Close it, upload, then reopen.
 
-> **Serial Monitor baud rate:** Always set to **115200** to match `Serial.begin(115200)` in the sketch. Using any other rate (e.g. 19200, 9600) produces garbage output.
+> **Serial Monitor baud rate:** Always use **115200** to match `Serial.begin(115200)` in the sketch.
 
 **To re-flash the ESP32:**
-1. Close the Serial Monitor if open
+1. Close the Serial Monitor
 2. Connect USB cable from ESP32 to your laptop
-3. Confirm board is set to `ESP32 Dev Module` and correct port is selected
-4. Open `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino`
-5. Click Upload — the IDE will compile then flash; you'll see `Connecting...` then a progress bar
+3. Confirm board is `ESP32 Dev Module` and port is correct
+4. Open `Arduino/blumen-motor/blumen-motor.ino`
+5. Click Upload
 
-**Getting the MAC address:**
+**Getting the MAC address** (if needed):
 
-The MAC address is printed during boot but only after a successful WiFi connection. Since the sketch connects to the old IDEO network, the easiest way to read it without connecting to any network is to flash this minimal sketch first:
+Flash this minimal sketch, open Serial Monitor at 115200 baud:
 
 ```cpp
 #include <WiFi.h>
-
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -233,11 +223,10 @@ void setup() {
   Serial.print("MAC address: ");
   Serial.println(WiFi.macAddress());
 }
-
 void loop() {}
 ```
 
-Open Serial Monitor at **115200 baud** — the MAC address prints immediately on boot. Record it for IT network registration, then re-flash the real `blumen-motor.ino` sketch.
+Then re-flash the real sketch.
 
 ---
 
@@ -245,29 +234,27 @@ Open Serial Monitor at **115200 baud** — the MAC address prints immediately on
 
 | | |
 |---|---|
-| **Role** | Amplifies low-current ESP32 signals to drive the high-current linear actuator |
+| **Role** | Amplifies ESP32 logic signals to drive the high-current linear actuator |
 | **Max current** | 30A continuous |
 | **Input voltage** | 12V DC (from PSU1) |
 | **Control signals** | 3.3V/5V logic (DIR + PWM from ESP32) |
 | **Datasheet** | https://www.cytron.io/p-md30c |
 | **User manual** | https://docs.cytron.io/cy-motor-driver/cy-md30c-r2 |
 
-**How it works:** The ESP32 sends a direction signal (HIGH or LOW on GPIO 27) and a PWM signal (0–255 on GPIO 13). The Cytron uses these logic-level signals to control its internal H-bridge, which switches the 12V supply to drive the motor forward or reverse at the commanded speed. The large capacitors on the corners absorb voltage spikes from motor braking.
-
-**Control logic:**
+**Control logic (confirmed):**
 
 | DIR pin | PWM pin | Motor action |
 |---|---|---|
-| LOW | 255 | Extend (open flower) |
-| HIGH | 255 | Retract (close flower) |
+| LOW | 255 | Extend → flower opens |
+| HIGH | 255 | Retract → flower closes |
 | Any | 0 | Stop (freeze) |
 
 **Jumper settings (confirmed):**
 
 | Jumper | Setting | Meaning |
 |---|---|---|
-| PWM SOURCE | `EXT PWM` | ESP32 GPIO 13 controls motor speed externally |
-| Protection | `INT PDT` | Internal peak detection for overcurrent protection |
+| PWM SOURCE | `EXT PWM` | ESP32 GPIO 13 controls motor speed |
+| Protection | `INT PDT` | Internal peak detection for overcurrent |
 
 ---
 
@@ -275,14 +262,16 @@ Open Serial Monitor at **115200 baud** — the MAC address prints immediately on
 
 | | |
 |---|---|
-| **Role** | Converts motor rotation into linear push/pull motion to open/close the flower |
+| **Role** | Converts motor rotation into linear push/pull to open/close the flower |
 | **Power** | 12V DC (from Cytron output) |
 | **Model** | Unknown — check for label on actuator body |
-| **Full travel time** | ~70.5 seconds (hardcoded as `FULL_PERIOD = 70500` ms in sketch) |
+| **Full travel time** | ~70.5 seconds (`FULL_PERIOD = 70500` ms in sketch — confirmed at Stanford) |
 
-The flower's position is controlled by time: the code calculates how long to run the motor based on the requested open fraction and the known full-travel time. There is **no position sensor** — it's open-loop. If the actuator ever hits a mechanical limit, the motor driver will stall (the Cytron handles this safely up to its current rating).
+Position is controlled by time: the code calculates how long to run the motor based on the requested open fraction and the known full-travel time. There is **no position sensor** — it's open-loop. If the actuator is moved manually, the ESP32's position tracking will be off until the next full open or close.
 
-> **Note for students:** Adding a limit switch or a position encoder would make the system much more robust. See [Section 9](#9-how-to-hack--extend).
+**Important:** During movement, the ESP32 uses `delay()` and cannot receive new OSC commands for up to 70 seconds. This is a known limitation noted in the code — a good student improvement project (see [Section 9](#9-how-to-hack--extend)).
+
+> **Note for students:** Adding a limit switch or position encoder would make the system more robust.
 
 ---
 
@@ -290,39 +279,53 @@ The flower's position is controlled by time: the code calculates how long to run
 
 | | |
 |---|---|
-| **Role** | Receives Art-Net lighting data from MadMapper and drives LED strips |
-| **Universes** | 16 Art-Net universes |
+| **Role** | Receives Art-Net data from MadMapper and drives LED strips |
+| **MAC Address** | `E0-B6-F5-E0-24-8C` |
+| **IP Address** | `192.168.0.50` (static, on Ethernet subnet) |
 | **Outputs** | 16 × RJ45 (CAT5 differential long-range outputs) |
-| **Protocols** | Art-Net, sACN (E1.31) |
 | **Power** | 5V DC (from PSU2) |
 | **Network** | Ethernet — direct cable to Intel NUC |
-| **Web config** | Access at `http://<PixLite-IP>` in a browser |
+| **Web config** | `http://192.168.0.50` (connect to NUC Ethernet subnet first) |
 | **Manual** | https://www.advateklights.com/downloads/pixlite-16-mkii-user-manual |
-| **Product page** | https://www.advateklights.com/pixlite16-mk2 |
 
-The PixLite has its own IP address on the Ethernet interface. MadMapper is configured to send Art-Net UDP packets to this IP. The PixLite then converts Art-Net universe data into physical pixel signals for each LED strip output.
+**Confirmed output configuration (Advanced mode, 12 active outputs):**
 
-**Factory reset procedure** (if IP address is unknown):
-1. Hold the `Factory Reset` button for 5 seconds
+| Physical Output | Art-Net Universe | Pixels |
+|---|---|---|
+| Output 1 | Universe 6 | 70 |
+| Output 2 | Universe 7 | 70 |
+| Output 3 | Universe 5 | 70 |
+| Output 4 | Universe 8 | 70 |
+| Output 5 | Universe 11 | 70 |
+| Output 6 | Universe 12 | 70 |
+| Output 7 | Universe 10 | 70 |
+| Output 8 | Universe 9 | 70 |
+| Output 9 | Universe 3 | 70 |
+| Output 10 | Universe 4 | 70 |
+| Output 11 | Universe 1 | 70 |
+| Output 12 | Universe 2 | 70 |
+
+MadMapper fixtures 1–12 are assigned to Art-Net universes 1–12 sequentially. The PixLite's scrambled universe→output mapping handles re-routing to the correct physical RJ45 port.
+
+**Factory reset** (if IP is unknown):
+1. Hold `Factory Reset` button for 5 seconds
 2. Default IP becomes `192.168.0.50`
-3. Connect a laptop directly via Ethernet, set your laptop's Ethernet IP to `192.168.0.x`, browse to `192.168.0.50`
+3. Connect laptop via Ethernet, set your laptop Ethernet IP to `192.168.0.x`, browse to `192.168.0.50`
 
 ---
 
 ### 3.6 Power Supplies
 
-Two switching power supplies live in the base enclosure:
-
-| PSU | Model | Input | Output | Max Current | Powers |
-|---|---|---|---|---|---|
-| PSU 1 | Mean Well S-300-12 | AC mains (120V) | 12V DC | 25A (300W) | Cytron MD30C → linear actuator |
-| PSU 2 | Mean Well S-300-5 | AC mains (120V) | 5V DC | 60A (300W) | Advatek PixLite + LED strips |
+| PSU | Model | Output | Max Current | Powers |
+|---|---|---|---|---|
+| PSU 1 | Mean Well S-300-12 | 12V DC | 25A (300W) | Cytron MD30C → linear actuator |
+| PSU 2 | Mean Well S-300-5 | 5V DC | 60A (300W) | Advatek PixLite + LED strips |
 
 Datasheet: https://www.meanwell.com/productPdf.aspx?goods=S-300
 
-> **Safety warning:** These power supplies have exposed AC mains voltage on their input terminals. Do not touch the input side while powered. The protective casing is specifically for this. Always power off before working on wiring.
+> **Safety:** These supplies have exposed AC mains voltage on the input terminals. Never touch the input side while powered. Always power off before working on wiring.
 
-> **Headroom note for students:** The 5V supply can deliver up to 60A (300W). A typical WS2812B LED draws ~60mA at full white. That means this PSU can theoretically power ~1,000 LEDs at full brightness before hitting the supply limit. You have significant headroom to add more LEDs.
+> **Headroom:** The 5V supply supports up to ~1,000 WS2812B LEDs at full white. With 840 pixels installed, you have significant headroom to add more.
 
 ---
 
@@ -330,11 +333,12 @@ Datasheet: https://www.meanwell.com/productPdf.aspx?goods=S-300
 
 | | |
 |---|---|
-| **Type** | WS2812B-type addressable RGB (built ~2017) |
+| **Type** | WS2812B addressable RGB |
 | **Voltage** | 5V |
-| **Data protocol** | Single-wire NeoPixel-compatible |
+| **Color order** | G-R-B (configured in PixLite) |
+| **Count** | 12 strips × 70 pixels = **840 pixels total** |
 | **Controller** | Advatek PixLite 16 (via RJ45 long-range differential outputs) |
-| **Location** | One strip per spoke of the flower umbrella structure |
+| **Location** | One strip per spoke of the flower umbrella |
 
 WS2812B reference: https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf
 
@@ -367,11 +371,10 @@ ESP32 USB Micro ─────────────────────�
 Intel NUC (Ethernet port) ────────────► Advatek PixLite 16 (Ethernet)
   Art-Net UDP → pixel data for LED strips
 
-Intel NUC (WiFi) ─────────────────────► Local WiFi router
+Intel NUC (WiFi) ─────────────────────► Stanford WiFi router
   OSC UDP :8001 → ESP32 (motor commands)
-  OSC UDP :8000 → MadMapper (lighting commands, received locally on NUC)
-  HTTP :3000 → phones/laptops (web app)
-  Socket.IO :80 → phones/laptops (real-time events)
+  OSC UDP :8000 → MadMapper (loopback, same machine)
+  HTTP :80 → phones/laptops (web app + Socket.IO on same port)
 ```
 
 ---
@@ -380,8 +383,8 @@ Intel NUC (WiFi) ─────────────────────
 
 ```
                     ┌──────────────────┐
-                    │   WiFi Router    │
-                    │  (dedicated)     │
+                    │  Stanford WiFi   │
+                    │  (router)        │
                     └────────┬─────────┘
                              │ WiFi
               ┌──────────────┼──────────────┐
@@ -390,36 +393,36 @@ Intel NUC (WiFi) ─────────────────────
       ┌──────────────┐ ┌──────────┐ ┌─────────────┐
       │  Intel NUC   │ │  ESP32   │ │ Phone/Laptop│
       │  (WiFi)      │ │  (WiFi)  │ │  (visitor)  │
-      │  static IP   │ │static IP │ │  DHCP IP    │
+      │  10.34.87.197│ │10.34.84.37│ │  DHCP       │
       └──────┬───────┘ └──────────┘ └─────────────┘
              │
-             │ Ethernet (direct)
+             │ Ethernet (direct cable, not on Stanford network)
              │
              ▼
       ┌──────────────┐
       │ Advatek      │
       │ PixLite 16   │
-      │ static IP    │
+      │ 192.168.0.50 │
       └──────────────┘
 ```
 
-### IP address table (update after IT sets up WiFi)
+### IP address table
 
 | Device | Interface | MAC Address | IP Address | Notes |
 |---|---|---|---|---|
-| Intel NUC | WiFi | `F8:63:3F:26:55:D4` | `TBD` (pending IT DHCP reservation) | Register MAC with IT for a stable reserved IP |
-| Intel NUC | Ethernet | N/A | `TBD` | Same subnet as PixLite; not registered with IT |
-| Advatek PixLite 16 | Ethernet | N/A | `TBD` | Configure via web UI; not on Stanford network |
-| ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP, not yet reserved) | Register MAC with IT for a stable reserved IP |
-| Phones/Laptops | WiFi | personal | DHCP | Assigned by router; no registration needed |
+| Intel NUC | WiFi | `F8:63:3F:26:55:D4` | `10.34.87.197` (DHCP — reserve with IT) | Used by phones to reach the web app |
+| Intel NUC | Ethernet | — | `192.168.0.1` (static, manual) | Direct link to PixLite only — not on Stanford network |
+| Advatek PixLite 16 | Ethernet | `E0-B6-F5-E0-24-8C` | `192.168.0.50` (static) | Configure at `http://192.168.0.50` |
+| ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP — reserve with IT) | Backend sends OSC here |
+| Phones/Laptops | WiFi | personal | DHCP | Assigned by router |
 
 ### Ports in use
 
 | Port | Protocol | Service | Direction |
 |---|---|---|---|
-| 3000 | TCP | React web app (ddl-ipad) | Browser → NUC |
-| 80 | TCP | Socket.IO backend | Browser → NUC |
-| 8000 | UDP | OSC → MadMapper | Backend → NUC (loopback) |
+| 80 | TCP | Backend (HTTP + Socket.IO) — also serves the React app | Browser → NUC |
+| 8000 | UDP | OSC → MadMapper (input) | Backend → NUC loopback |
+| 9000 | UDP | OSC ← MadMapper (feedback) | MadMapper → Backend loopback |
 | 8001 | UDP | OSC → ESP32 motor | Backend → ESP32 |
 | 6454 | UDP | Art-Net → PixLite | MadMapper → PixLite |
 
@@ -427,67 +430,73 @@ Intel NUC (WiFi) ─────────────────────
 
 ## 6. Software Stack
 
-### 6.1 ddl-ipad — React Web App (Frontend)
+### 6.1 React Web App (Frontend)
 
 | | |
 |---|---|
-| **Repo** | https://github.com/ideo/ddl-ipad |
+| **Location** | `frontend/` |
 | **Tech** | React 16, Socket.IO client, Framer Motion, Material UI |
-| **Runs on** | Intel NUC, served at `http://<NUC-IP>:3000` |
-| **Access** | Any browser on the local WiFi |
+| **How it runs** | Compiled to a static build, served by the backend at port 80 |
+| **Access** | Any browser on the local WiFi: `http://10.34.87.197` (no port number) |
 
-**Key file:** `src/Components/Controller.js` — the Socket.IO connection uses `window.location.hostname` (dynamic), so it automatically connects back to whichever machine served the page. No IP editing needed.
+The frontend is **pre-built** — there is no separate dev server running. The backend at port 80 serves the static files from `frontend/build/`. Students connect to the NUC's IP directly.
+
+**Key file:** `frontend/src/Components/Controller.js` — the Socket.IO connection uses `window.location.hostname`, so it automatically connects back to the NUC regardless of what IP it has. No hardcoded address.
 
 **UI sections:**
-- **Blumen Lumen tab**: Controls the flower
-  - Default / Custom mode toggle
-  - Behavior presets: Circular, Stripes, Rotation, Sweep
-  - Open/Close slider (0–100%)
-  - Color palette selector (4 palettes)
-- **Room Light tab**: Ambient room lighting presets (not active at Stanford)
 
-**To start:**
+- **Blumen Lumen tab** (the main one):
+  - **Default / Custom toggle**: Default = autonomous mode (ESP32 schedule + LED default). Custom = manual control.
+  - **Behavior presets**: Circular, Stripes, Rotation, Sweep — changes the LED animation pattern.
+  - **Open/Close slider** (0–100%): Moves the flower. After you release, the UI locks the slider for ~80 seconds while the motor moves. This is intentional — the ESP32 cannot receive new commands while moving.
+  - **Color palette selector**: 4 palettes (see [Section 7](#7-osc-api-reference)).
+
+- **Room Light tab**: Controls for room ambient lighting. Wired up in the code but **not connected to any hardware at Stanford** — the original IDEO room lighting is not installed here. Safe to ignore.
+
+**After any frontend code change**, rebuild before restarting the backend:
 ```bash
-cd ddl-ipad
+cd frontend
 npm install   # first time only
-npm start     # serves on port 3000
+npm run build # compiles React → frontend/build/
 ```
+Then restart the backend — it serves `frontend/build/` automatically.
 
 ---
 
-### 6.2 ddl-ipad-backend — Node.js Server (Backend)
+### 6.2 Node.js Backend
 
 | | |
 |---|---|
-| **Repo** | https://github.com/ideo/ddl-ipad-backend (also in `blumen-lumen-ideo/iPad/ddl-ipad-backend/`) |
-| **Tech** | Node.js, Socket.IO, node-osc |
-| **Runs on** | Intel NUC, port 80 |
+| **Location** | `backend/app.js` |
+| **Tech** | Node.js, Express 4, Socket.IO, node-osc |
+| **Port** | 80 (HTTP + WebSocket + serves static React build) |
 
-This server is the translator between the web UI and the physical hardware. It maintains the current state of the flower and emits OSC messages when state changes.
+This server translates between the web UI and the physical hardware. It also serves the built React frontend on the same port 80.
 
-**Key file:** `app.js`
+**Key lines to know:**
+```js
+// backend/app.js line 18 — MadMapper on same machine, loopback always correct
+const oscClient = new Client('127.0.0.1', 8000);
+
+// backend/app.js line 21 — update if IT reserves a different IP for the ESP32
+const oscClientEngine = new Client('10.34.84.37', 8001);
 ```
-Line to update with new IP once IT provides it:
-  const oscClientEngine = new Client('<ESP32-IP>', 8001); // Arduino motor
 
-Already correct — no IP editing needed:
-  const oscClient = new Client('127.0.0.1', 8000);     // MadMapper (same machine)
-```
+**Socket.IO events the backend handles:**
 
-**Socket.IO events it handles:**
-
-| Event | Payload | Action |
+| Event | Payload | What happens |
 |---|---|---|
-| `blumenMode` | `{blumenMode: 'custom'\|'default'}` | Switches between autonomous/manual |
-| `blumenBehavior` | `{blumenBehavior: 'circular'\|'stripes'\|'rotation'\|'sweep'}` | Sets LED pattern |
-| `blumenOpenLevel` | `{blumenOpenLevel: 0.0–1.0}` | Moves flower to position |
-| `blumenColorPalette` | `{blumenColorPalette: 0–3}` | Changes color palette |
+| `blumenMode` | `{blumenMode: 'custom'/'default'}` | Switches autonomous/manual; triggers OSC to MadMapper |
+| `blumenBehavior` | `{blumenBehavior: 'circular'/'stripes'/'rotation'/'sweep'}` | Triggers OSC to MadMapper (only in custom mode) |
+| `blumenOpenLevel` | `{blumenOpenLevel: 0.01–0.99}` | Triggers OSC `/1/fader1` to ESP32 (only in custom mode) |
+| `blumenColorPalette` | `{blumenColorPalette: 0–3}` | Triggers OSC to MadMapper (only in custom mode) |
 
-**To start:**
-```bash
-cd blumen-lumen-ideo/iPad/ddl-ipad-backend
-npm install   # first time only
-npm start     # node app.js, listens on port 80
+**Per-connection state:** Each browser tab gets its own independent state object. Two phones can issue conflicting motor commands simultaneously — the ESP32 will just receive both. For a multi-user setup this matters (see [Section 9](#9-how-to-hack--extend)).
+
+**To start manually** (if the startup script isn't available):
+```
+cd backend
+npm start
 ```
 
 ---
@@ -496,25 +505,29 @@ npm start     # node app.js, listens on port 80
 
 | | |
 |---|---|
-| **Version** | Licensed on Intel NUC |
+| **License** | Licensed on the Intel NUC |
 | **Role** | Generates Art-Net pixel data, sends to Advatek PixLite |
-| **Active program** | `blumen-lumen-ideo/MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` |
-| **OSC input port** | 8000 |
-| **Art-Net output** | UDP to Advatek PixLite IP, port 6454 |
+| **Active program** | `MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` |
+| **OSC input port** | **8000** (backend → MadMapper) |
+| **OSC feedback port** | **9000** (MadMapper → backend; feedback IP: auto) |
+| **Art-Net output** | Broadcast mode, Ethernet interface `192.168.0.1`, port 6454 |
 | **Docs** | https://madmapper.com/documentation |
 
-MadMapper has saved programs for the flower (`js-`, `pk-`, `yc-dreamlab-blumen.mad`). Each contains the LED mapping and the visual presets. The backend triggers these presets via OSC messages.
+Art-Net is configured in **Broadcast mode** so all 12 PixLite outputs receive data. It must use the Ethernet interface (`192.168.0.1`), not the WiFi interface.
 
-**OSC messages MadMapper listens for** (on port 8000):
+**OSC messages MadMapper responds to** (on port 8000):
 
 | OSC Address | Value | Meaning |
 |---|---|---|
-| `/2/default` | `1` | Activate autonomous default mode |
+| `/2/default` | `1` | Activate autonomous default pattern |
 | `/2/circular_p0` | `1` | Circular pattern, palette 0 |
 | `/2/circular_p1` | `1` | Circular pattern, palette 1 |
 | `/2/stripes_p0` | `1` | Stripes pattern, palette 0 |
 | `/2/rotation_p2` | `1` | Rotation pattern, palette 2 |
 | … | … | Pattern: `{behavior}_p{palette}` |
+
+Available behaviors: `circular`, `stripes`, `rotation`, `sweep`  
+Available palette indices: `0`, `1`, `2`, `3`
 
 ---
 
@@ -522,41 +535,46 @@ MadMapper has saved programs for the flower (`js-`, `pk-`, `yc-dreamlab-blumen.m
 
 | | |
 |---|---|
-| **File** | `blumen-lumen-ideo/Arduino/blumen-motor/blumen-motor.ino` |
+| **Files** | `Arduino/blumen-motor/blumen-motor.ino`, `MotorController.h`, `MotorController.cpp` |
 | **Board** | ESP32 Dev Module |
-| **Libraries** | WiFi, WiFiUdp, OSCMessage (CNMAT), ESP32_AnalogWrite |
+| **Libraries** | WiFi, WiFiUdp, OSCMessage (CNMAT), time.h |
 | **IDE** | Arduino IDE 2.x |
 
-**Values to update for a new location** (at the top of `blumen-motor.ino`):
+**Configuration at top of `blumen-motor.ino`** — these are the only values you'd normally change:
+
 ```cpp
-const char SSID[] = "Stanford";       // WiFi network name (open, MAC-registered)
-const unsigned long FULL_PERIOD = 70500; // ms for actuator full travel — recalibrate on-site
+const char SSID[] = "Stanford";          // WiFi network name (open, MAC-registered)
+const unsigned long FULL_PERIOD = 70500; // ms for actuator full travel
+                                         // Increase if flower undershoots; decrease if overshoots
 ```
-The ESP32 uses DHCP (no static IP in sketch). WiFi is an open network — no password needed once the MAC is registered with Stanford IT.
+
+The ESP32 uses DHCP (no static IP in the sketch). Stanford WiFi is open — no password needed once the MAC is registered with IT.
+
+**WiFi watchdog:** The sketch automatically reconnects if WiFi drops and re-syncs NTP on reconnect.
 
 ---
 
 ### 6.4.1 Boot Behavior
 
 On every power-on or reset, the ESP32:
-1. Connects to Stanford WiFi (prints IP and MAC to Serial)
+1. Attempts to connect to Stanford WiFi (20-second timeout; prints IP and MAC to Serial)
 2. Syncs time via NTP from `pool.ntp.org` (up to 10 retries; timezone PST/PDT)
-3. **Retracts to fully closed** — runs the motor for a full `FULL_PERIOD` regardless of current position, then sets `prevState = 0.0`
+3. **Retracts to fully closed** — runs the motor for a full `FULL_PERIOD` regardless of current position, then sets position to 0.0
 
-Step 3 is intentional: it guarantees the ESP32's internal position tracking is accurate on startup. The flower always starts closed.
+Step 3 is intentional: it guarantees the position tracking is accurate on startup. The flower always starts closed, then re-opens when the schedule fires or a user opens it manually.
 
-> **What this means in practice:** Every time the NUC reboots or the ESP32 is reset, the flower will close. It will then re-open when the schedule fires or when a user manually opens it via the web app.
+> **What this means in practice:** Every time the NUC reboots or the ESP32 is reset, the flower closes for ~70 seconds. Normal.
+
+If WiFi doesn't connect, the ESP32 continues with motor and serial commands still working — OSC and the schedule are disabled until WiFi comes back.
 
 ---
 
-### 6.4.2 Ambient / Autonomous Behavior
+### 6.4.2 Autonomous Schedule
 
-When no one is sending manual OSC commands, the ESP32 follows a daily schedule to open and close the flower on its own. This runs entirely on the ESP32 — no NUC or network needed once the sketch is flashed.
-
-**Daily schedule (PST/PDT):**
+When no OSC commands are received, the ESP32 follows this daily schedule (PST/PDT):
 
 | Time | Position | Description |
-|------|----------|-------------|
+|---|---|---|
 | 8:45 am | 0.00 | Fully closed |
 | 9:00 am | 0.25 | Quarter open |
 | 9:15 am | 0.50 | Half open |
@@ -568,58 +586,50 @@ When no one is sending manual OSC commands, the ESP32 follows a daily schedule t
 | 4:59 pm | 0.25 | Quarter open |
 | 5:05 pm | 0.00 | Fully closed |
 
-The flower gradually opens from 8:45–9:59am as the d.school fills up, holds fully open through the afternoon, then gradually closes from 4:15–5:05pm.
+This runs entirely on the ESP32 — no NUC or network needed once flashed.
 
-**How it works:**
-- The ESP32 checks the current time on every `loop()` iteration
-- When `hour:minute` matches a schedule entry and the flower isn't already at that position, it moves
-- If the motor is already moving (e.g. from a manual command), the schedule step is skipped until the next loop
-- Schedule requires NTP sync — if NTP failed on boot, the flower won't follow the schedule (Serial Monitor will show a warning)
+**Manual control vs. schedule:** Manual OSC commands (from the web app) override the schedule immediately. The schedule resumes at the next scheduled time — if a student manually closes the flower at 10am, it stays closed until the 4pm entry fires.
 
 **To change the schedule**, edit the `SCHEDULE` array in `blumen-motor.ino`:
 ```cpp
 const ScheduleEntry SCHEDULE[] = {
   {8,  45, 0.00},   // { hour (24h), minute, position (0.0–1.0) }
   {9,   0, 0.25},
-  // ... add or remove entries freely
+  // ...
 };
 ```
-
-**Manual control vs. schedule:**
-Manual OSC commands (from the web app) override the schedule immediately. The schedule will still fire at the next scheduled time — so if a student manually closes the flower at 10am, it will stay closed until 4pm when the schedule fires again at 0.99.
+Reflash after editing.
 
 ---
 
 ## 7. OSC API Reference
 
-OSC (Open Sound Control) is the message protocol used between all components. Any device on the network can send OSC packets to control the flower directly.
+OSC (Open Sound Control) is the protocol between all components. Any device on the network can send OSC packets to control the flower directly — useful for custom scripts and student projects.
 
-### Motor control (→ ESP32 at `<ESP32-IP>:8001`)
+### Motor control (→ ESP32 at `10.34.84.37:8001`)
 
 | Address | Type | Range | Description |
 |---|---|---|---|
-| `/1/fader1` | float | 0.0 – 1.0 | Set flower open position. 0.0 = fully closed, 1.0 = fully open. Movement is timed, not instant. |
+| `/1/fader1` | float | 0.0 – 1.0 | Set flower open position. 0.0 = closed, 1.0 = open. Movement is timed, not instant — and the ESP32 cannot receive new commands until it finishes. |
 
-Example (using Python):
+Example (Python):
 ```python
+# pip install python-osc
 from pythonosc.udp_client import SimpleUDPClient
-client = SimpleUDPClient("<ESP32-IP>", 8001)
+client = SimpleUDPClient("10.34.84.37", 8001)
 client.send_message("/1/fader1", 0.5)  # open to 50%
 ```
 
-### Lighting control (→ MadMapper on NUC at `<NUC-IP>:8000`)
+### Lighting control (→ MadMapper at `127.0.0.1:8000` from the NUC, or `10.34.87.197:8000` from another device)
 
 | Address | Type | Value | Description |
 |---|---|---|---|
 | `/2/default` | int | 1 | Return to autonomous default pattern |
 | `/2/{behavior}_p{palette}` | int | 1 | Activate named preset |
 
-Available behaviors: `circular`, `stripes`, `rotation`, `sweep`
-Available palettes: `0`, `1`, `2`, `3`
-
 Example:
 ```python
-client = SimpleUDPClient("<NUC-IP>", 8000)
+client = SimpleUDPClient("10.34.87.197", 8000)
 client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 ```
 
@@ -639,8 +649,7 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 **NUC login:** Username `Dream Lab` / Password `123456`
 
 **Pre-flight checklist:**
-- [ ] Dedicated WiFi router is powered on and broadcasting
-- [ ] Intel NUC is on and connected to router via WiFi
+- [ ] Intel NUC is on and connected to Stanford WiFi
 - [ ] Advatek PixLite 16 is powered and connected to NUC via Ethernet
 - [ ] ESP32 is powered via USB
 - [ ] Both power supplies (12V, 5V) are switched on
@@ -648,27 +657,30 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 
 **Startup sequence:**
 
-1. **Run `blumen-startup.bat`** — double-click it on the NUC Desktop (or in `blumen-lumen-ideo/Startup/`). This opens two windows:
-   - **"Blumen Backend"** — Node.js server on port 80
-   - **"Blumen Frontend"** — React dev server on port 3000
+1. **Run `Startup/blumen-startup.bat` as Administrator** — right-click → Run as administrator. This opens one window:
+   - **"Blumen Backend"** — Node.js server on port 80 (also serves the React app)
 
-   > If either window shows a red error and exits, read the error message before closing it. The most common cause is port 80 requiring Administrator — right-click the `.bat` and choose **Run as administrator**.
+   > If the window shows an error and exits, read it before closing. Most common cause: port 80 requires Administrator.
 
-2. **MadMapper** should open automatically (it is configured as a Windows startup item). If it didn't launch, open it manually and load `yc-dreamlab-blumen.mad` from `blumen-lumen-ideo/MadMapper/Blumen Programs/`.
+2. **MadMapper** should open automatically (configured as a Windows startup item). If it didn't launch, open it manually and load `MadMapper/Blumen Programs/yc-dreamlab-blumen.mad`.
 
-3. **On your phone or laptop:** Connect to the Stanford WiFi, open a browser to `http://<NUC-IP>:3000`
+3. **On any phone or laptop on Stanford WiFi:** Go to `http://10.34.87.197` — no port number needed.
 
-4. **Verify:** Toggle to Custom mode, drag the open slider — the flower should move. Try changing a behavior preset — LEDs should change.
+4. **Verify:** Toggle to Custom mode, drag the open slider — the flower should move (~70 seconds). Try changing a behavior preset — LEDs should change immediately.
 
-> **Note on the flower's startup state:** When the ESP32 powers on or resets, it **retracts to fully closed** as a calibration step (takes ~70 seconds). The web app slider will start at 0% to match. This is intentional — see [Section 6.4.1](#641-boot-behavior).
+> **Startup state:** The ESP32 always retracts to closed when powered on (~70 seconds calibration step). The web app slider starts at 0% to match. This is intentional.
 
-**To start manually** (if the `.bat` isn't available or needs debugging):
+**Repository layout:**
+
 ```
-cd blumen-lumen-ideo\iPad\ddl-ipad-backend
-npm start
-
-cd blumen-lumen-ideo\iPad\ddl-ipad
-npm start
+blumen-lumen/
+├── Arduino/blumen-motor/   ← ESP32 sketch — reflash only if sketch changes
+├── backend/                ← npm start (port 80) — also serves built React app
+├── frontend/               ← npm run build after any frontend changes
+│   └── build/              ← what the backend actually serves (pre-built)
+├── MadMapper/              ← .mad files (open yc-dreamlab-blumen.mad)
+├── Startup/                ← blumen-startup.bat (run as admin)
+└── Datasheets/             ← hardware PDFs
 ```
 
 ---
@@ -679,18 +691,18 @@ npm start
 
 | What you want to do | Where to start |
 |---|---|
-| Change LED color palette | `ddl-ipad/src/Controllers/States.js` — edit `colorPaletteArray` |
-| Add a new behavior preset button | `ddl-ipad/src/Components/BlumenLumenContent.js` — add a `<Button>` and update backend logic |
-| Change the daily schedule | `blumen-motor.ino` — edit the `SCHEDULE[]` array near the top of the file |
-| Adjust full-open travel time | `blumen-motor.ino` — change `FULL_PERIOD` (currently 70500ms) |
-| Send OSC from a custom script | See [OSC API](#7-osc-api-reference) — any language with an OSC library works |
-| Add a physical sensor | Wire to an unused ESP32 GPIO, read in `loop()`, send OSC or respond directly |
-| Add a new MadMapper preset | Open MadMapper, create a new cue, assign it an OSC address like `/2/yourname_p0` |
-| Build a different UI | Anything that speaks Socket.IO to the backend on port 80, or OSC directly |
+| Change LED color palette | `frontend/src/Controllers/States.js` — edit `colorPaletteArray` |
+| Add a new behavior preset button | `frontend/src/Components/BlumenLumenContent.js` — add a `<Button>`, then handle the new event in `backend/app.js` |
+| Change the daily schedule | `Arduino/blumen-motor/blumen-motor.ino` — edit the `SCHEDULE[]` array and reflash |
+| Adjust full-open travel time | `Arduino/blumen-motor/blumen-motor.ino` — change `FULL_PERIOD` (currently 70500ms) and reflash; also update `defaultTimeOfOpening` in `frontend/src/Components/Controller.js` to match (must be ≥ FULL_PERIOD/1000) |
+| Send OSC from a custom script | See [OSC API](#7-osc-api-reference) |
+| Add a physical sensor | Wire to unused ESP32 GPIO, read in `loop()`, respond directly |
+| Add a new MadMapper preset | Open MadMapper, create a new cue, assign OSC address `/2/yourname_p0` |
+| Build a different UI | Anything that speaks Socket.IO to port 80, or sends OSC directly |
+| Fix the blocking motor | Rewrite `motorMover()` in the Arduino sketch as a non-blocking state machine using `millis()` (see TODO comment in `blumen-motor.ino`) |
+| Multi-user state sync | Lift `blumen` state above the connection handler in `backend/app.js` so all tabs see the same position (see TODO comment in `app.js`) |
 
 ### Adding a physical sensor (example: proximity sensor)
-
-The ESP32 has many unused GPIO pins available on the breadboard. To add, say, an HC-SR04 ultrasonic sensor:
 
 ```cpp
 // In blumen-motor.ino, add to setup():
@@ -706,34 +718,34 @@ if (distance < 50) {  // someone within 50cm
 
 ### Adding a new web UI control
 
-1. Add a Socket.IO event emission in `ddl-ipad/src/Components/Controller.js`
-2. Add a handler in `ddl-ipad-backend/app.js` for that event
-3. In the handler, send the appropriate OSC message to MadMapper or the ESP32
+1. Add a button or slider in `frontend/src/Components/BlumenLumenContent.js`
+2. Emit a Socket.IO event from `frontend/src/Components/Controller.js`
+3. Handle that event in `backend/app.js` and send the appropriate OSC message
+4. Run `npm run build` in `frontend/` and restart the backend
 
 ### Talking to the flower from Python
 
 ```python
-# Install: pip install python-osc
+# pip install python-osc
 from pythonosc.udp_client import SimpleUDPClient
 
-motor = SimpleUDPClient("<ESP32-IP>", 8001)
-lights = SimpleUDPClient("<NUC-IP>", 8000)
+motor  = SimpleUDPClient("10.34.84.37", 8001)   # ESP32
+lights = SimpleUDPClient("10.34.87.197", 8000)  # MadMapper (via NUC)
 
-# Open the flower 75%
-motor.send_message("/1/fader1", 0.75)
-
-# Set circular pattern with palette 3
-lights.send_message("/2/circular_p3", 1)
+motor.send_message("/1/fader1", 0.75)        # open flower to 75%
+lights.send_message("/2/circular_p3", 1)     # circular pattern, palette 3
 ```
 
 ### Ideas for student projects
-- **Sensor-reactive**: Open the flower when someone approaches (ultrasonic sensor)
+
+- **Sensor-reactive**: Open the flower when someone approaches (ultrasonic sensor on ESP32)
 - **Sound-reactive**: Change colors based on ambient sound level (microphone on ESP32)
 - **Scheduled generative art**: New color palettes generated daily by an algorithm
-- **Multi-user web app**: Let multiple phones vote on what the flower does
-- **Data visualization**: Map real-world data (weather, stock price, tweet volume) to flower position and color
-- **Computer vision**: Use a camera feed and ML to detect crowd size and react
-- **Voice control**: Add a voice interface that sends OSC commands
+- **Multi-user voting**: Let multiple phones vote on what the flower does
+- **Data visualization**: Map real-world data (weather, stock price) to flower position and color
+- **Computer vision**: Camera feed + ML to detect crowd size and react
+- **Voice control**: Voice interface that sends OSC commands
+- **Non-blocking motor**: Rewrite `motorMover()` as a state machine so the ESP32 stays responsive during movement
 
 ---
 
@@ -741,54 +753,49 @@ lights.send_message("/2/circular_p3", 1)
 
 ### Flower doesn't move when I drag the slider
 
-1. Check that the backend server is running (NUC terminal should show OSC log messages)
-2. Check the ESP32 is connected to WiFi — its Serial Monitor (Arduino IDE) will show connection status
-3. Verify the ESP32 IP in `app.js` matches the actual assigned IP
-4. Make sure you're in **Custom mode** in the web app (default mode ignores slider input)
-5. Check the Cytron motor driver — green PWM LED should blink when a command is received
+1. Make sure you're in **Custom mode** (Default mode ignores slider input)
+2. Wait — the slider locks out for ~80 seconds after a move. If it just moved, this is normal.
+3. Check that the backend server is running (the "Blumen Backend" CMD window should show OSC log messages)
+4. Check the ESP32 is connected to WiFi — open Serial Monitor at 115200 baud to see connection status
+5. Verify the ESP32 IP in `backend/app.js` line 21 matches what the ESP32 actually got (check Serial Monitor output)
+6. Check the Cytron motor driver — green PWM LED should blink when a command is received
 
 ### LEDs don't respond
 
-1. Check MadMapper is open and the correct `.mad` file is loaded
-2. Verify MadMapper's OSC input is configured to port 8000
+1. Check MadMapper is open and `yc-dreamlab-blumen.mad` is loaded
+2. Verify MadMapper's OSC input is configured to port 8000 (MadMapper → Preferences → OSC)
 3. Check the Advatek PixLite 16 is powered (status LEDs should be on)
 4. Verify the Ethernet cable between NUC and PixLite is connected
-5. Open the PixLite web config (`http://<PixLite-IP>`) to confirm it's receiving Art-Net
+5. Open the PixLite web config (`http://192.168.0.50`) to confirm it's receiving Art-Net — connect a laptop to the NUC's Ethernet subnet first
 
-### Web app can't connect (spinning / no response)
+### Web app can't connect (spinning or no response)
 
-1. Confirm your phone/laptop is on the correct WiFi network (not eduroam/Stanford Visitor)
-2. Confirm both `npm start` servers are running on the NUC
-3. Check that the IP in `Controller.js` matches the NUC's current IP
-4. Try accessing `http://<NUC-IP>:80` directly to test the backend
+1. Confirm your phone is on Stanford WiFi (not eduroam or Stanford Visitor — different network)
+2. Confirm the backend is running on the NUC
+3. Try `http://10.34.87.197` directly — if this doesn't load, the NUC IP may have changed (check with `ipconfig` on the NUC)
 
 ### ESP32 won't connect to WiFi
 
-1. Confirm the SSID and password in the sketch match the router exactly (case-sensitive)
-2. Make sure the router is on 2.4GHz — ESP32 does not support 5GHz WiFi
-3. Open Serial Monitor at 115200 baud to see connection debug output
-4. Re-flash the sketch after updating credentials
+1. Confirm the SSID in the sketch is `"Stanford"` (case-sensitive)
+2. Make sure the router is broadcasting 2.4GHz — ESP32 does not support 5GHz
+3. Make sure the ESP32's MAC `24:0A:C4:EC:A7:64` is registered with Stanford IT
+4. Open Serial Monitor at 115200 baud and watch the boot output
 
 ### Flower moves but doesn't reach correct position
 
-The motion is open-loop (timed). If the actuator was manually moved or hit a limit, the ESP32's internal position tracking (`prevState`) can drift from reality. To reset:
-1. Send OSC `/1/fader1` with value `0.0` and let it run until fully retracted
-2. Then send `1.0` to go to fully extended — this re-calibrates the timing baseline
+Position tracking is open-loop (timed). If the actuator was manually moved, `prevState` can drift. To recalibrate:
+1. Send `/1/fader1` value `0.0` and wait the full ~70 seconds until fully retracted
+2. Then send `1.0` — this re-establishes the timing baseline
+
+Or use the Serial Monitor: type `close`, wait for it to finish, then `open`.
+
+### ESP32 won't take OSC commands from a custom script
+
+Remember: the ESP32 cannot receive new OSC while its motor is moving (`delay()` blocks the loop). Wait until the current move finishes. Also confirm you're sending UDP to port 8001.
 
 ---
 
-## Repositories
-
-| Repo | Contents |
-|---|---|
-| https://github.com/FoldHaus/blumen-lumen-ideo | Arduino sketch, MadMapper files, backend server, IP config, startup scripts |
-| https://github.com/ideo/ddl-ipad | React frontend web app |
-
----
-
----
-
-### Credits
+## Credits
 
 | Role | Credit |
 |---|---|
@@ -796,5 +803,10 @@ The motion is open-loop (timed). If the actuator was manually moved or hit a lim
 | Electronics, WiFi integration & software | IDEO (Palo Alto, CA) |
 | Donation to Stanford d.school | Yicheng (YC) Sun, Stanford lecturer, 2026 |
 | Original supporters | Black Rock Arts Foundation, Kickstarter backers |
+
+**Repositories:**
+- Canonical: https://github.com/yichengsun/blumen-lumen (this repo — all work goes here)
+- Archived reference: https://github.com/FoldHaus/blumen-lumen-ideo (do not edit)
+- Archived reference: https://github.com/ideo/ddl-ipad (do not edit)
 
 *Documentation written June 2026. Sculpture originally built by FoldHaus Collective, premiered Burning Man 2014. Displayed at IDEO Palo Alto for ~10 years before donation to Stanford Design School.*
