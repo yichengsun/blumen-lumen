@@ -10,24 +10,21 @@
 TITLE Blumen Startup
 ECHO Starting Blumen services...
 
-:: Prevent React from auto-opening a browser tab on the NUC
-SET BROWSER=none
+:: The backend serves the pre-built React app on port 80.
+:: Phones connect to http://<NUC-IP> — no port number needed.
+::
+:: If you update frontend code, rebuild before restarting:
+::   cd C:\Users\Dream Lab\blumen-lumen\frontend
+::   npm run build
 
-ECHO Starting backend server (1/2)...
+ECHO Starting backend server...
 CD "C:\Users\Dream Lab\blumen-lumen\backend"
 START "Blumen Backend" cmd /k "npm start"
 
-:: Small delay so the backend is listening before the frontend connects
-TIMEOUT /T 3 /NOBREAK >nul
-
-ECHO Starting frontend server (2/2)...
-CD "C:\Users\Dream Lab\blumen-lumen\frontend"
-START "Blumen Frontend" cmd /k "npm start"
-
 ECHO.
-ECHO Done. Two windows should be open:
-ECHO   "Blumen Backend"  — Node.js server on port 80
-ECHO   "Blumen Frontend" — React dev server
+ECHO Done. Backend is starting in the "Blumen Backend" window (port 80).
+ECHO   Web app: http://<NUC-WiFi-IP>  (no port number needed)
 ECHO.
 ECHO MadMapper should launch automatically via Windows startup items.
-ECHO If it did not open, launch it manually and load yc-dreamlab-blumen.mad
+ECHO If it did not open, launch it manually and load:
+ECHO   blumen-lumen\MadMapper\Blumen Programs\yc-dreamlab-blumen.mad

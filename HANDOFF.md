@@ -3,116 +3,93 @@
 
 ---
 
-## What's working right now
+## System status: FULLY WORKING
 
-- **ESP32 motor controller** — fully flashed, tested, working
-  - Connects to Stanford WiFi automatically
-  - Opens and closes correctly via serial commands AND daily schedule
-  - MAC: `24:0A:C4:EC:A7:64` — registered with Stanford IT
-  - Current DHCP IP: `10.34.84.37` (not yet reserved — pending IT)
-  - Sketch on: `github.com/yichengsun/blumen-lumen` main branch → `Arduino/blumen-motor/`
+All subsystems tested and confirmed operational at Stanford d.school.
 
-- **Advatek PixLite 16 Long Range** — found and responding
-  - Nickname: "Blumen 1", Firmware: V2.0.14
-  - IP changed to static: `192.168.0.50`
-  - NUC Ethernet set to: `192.168.0.1` / `255.255.255.0`
-  - **Advatek LED tester works** — LEDs light up, wiring is correct
-  - Web UI (`http://192.168.0.50`) not loading in browser — skip it for now
+| Subsystem | Status | Notes |
+|---|---|---|
+| ESP32 motor controller | ✅ Working | Connects to Stanford WiFi, opens/closes correctly, schedule running |
+| MadMapper → PixLite → LEDs | ✅ Working | All 12 spokes lit, Art-Net broadcast confirmed |
+| Web app | ✅ Working | Mobile-responsive, served on port 80 |
+| Backend → ESP32 OSC | ✅ Working | `/1/fader1` commands move the flower |
+| Backend → MadMapper OSC | ✅ Working | Cue triggers change LED patterns |
+| Startup script | ✅ Working | `blumen-startup.bat` starts backend only (no separate frontend server) |
 
 ---
 
-## Currently in progress: MadMapper → PixLite → LEDs
+## How to start the system
 
-The LED hardware works. The missing link is getting MadMapper to send Art-Net to the PixLite.
-
-### Exact next steps
-
-1. **Open MadMapper** on the NUC — load `yc-dreamlab-blumen.mad`
-   - File is at: `blumen-lumen\MadMapper\Blumen Programs\yc-dreamlab-blumen.mad`
-   - (once repo is cloned to NUC)
-
-2. **Configure Art-Net output in MadMapper:**
-   - Go to Output settings
-   - Art-Net destination IP: `192.168.0.50`
-   - **Network interface must be set to the Ethernet adapter (`192.168.0.1`), NOT WiFi**
-   - This is the most likely gotcha — MadMapper may default to WiFi
-
-3. **Verify universes match** — the PixLite universe assignments need to match what MadMapper sends. Take a screenshot of MadMapper's output config when you find it.
-
-4. **Test** — LEDs should animate when MadMapper is running with Art-Net enabled
-
----
-
-## NUC network config (important — two adapters)
-
-| Adapter | IP | Purpose |
-|---------|-----|---------|
-| WiFi | Stanford DHCP (TBD reserved) | Web app access, OSC to ESP32 |
-| Ethernet | `192.168.0.1` (static, manual) | Art-Net to PixLite only |
-
-**Do not change the Ethernet adapter back to DHCP** — PixLite won't be reachable.
+1. **Run `Startup/blumen-startup.bat` as Administrator** — opens "Blumen Backend" window (port 80)
+2. **Open MadMapper** — load `MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` (auto-starts via Windows startup items)
+3. **Students visit** `http://10.34.87.197` on any phone/laptop — no port number needed
 
 ---
 
 ## All known IPs
 
-| Device | IP | Notes |
-|--------|-----|-------|
-| Intel NUC (WiFi) | TBD | Pending IT DHCP reservation |
-| Intel NUC (Ethernet) | `192.168.0.1` | Direct cable to PixLite |
-| Advatek PixLite | `192.168.0.50` | Set today via Advatek Assistant |
-| ESP32 motor controller | `10.34.84.37` | Current DHCP, not yet reserved |
-| MadMapper (on NUC) | `127.0.0.1:8000` | Localhost OSC input |
+| Device | Interface | IP | MAC | Notes |
+|--------|-----------|-----|-----|-------|
+| Intel NUC | WiFi | `10.34.87.197` (DHCP) | `F8:63:3F:26:55:D4` | **Reserve with IT** |
+| Intel NUC | Ethernet | `192.168.0.1` (static) | — | Direct cable to PixLite only |
+| Advatek PixLite | Ethernet | `192.168.0.50` (static) | `E0-B6-F5-E0-24-8C` | Config at `http://192.168.0.50` |
+| ESP32 | WiFi | `10.34.84.37` (DHCP) | `24:0A:C4:EC:A7:64` | **Reserve with IT** |
+| MadMapper (on NUC) | loopback | `127.0.0.1` | — | OSC input port 8000 |
+
+**Action needed:** Ask Stanford IT to provision DHCP reservations for NUC (`F8:63:3F:26:55:D4`) and ESP32 (`24:0A:C4:EC:A7:64`) so their IPs don't change.
 
 ---
 
-## Repo on GitHub
+## NUC network config (do not change)
 
-Everything is at: **https://github.com/yichengsun/blumen-lumen**
+| Adapter | IP | Purpose |
+|---------|-----|---------|
+| WiFi | `10.34.87.197` (DHCP — reserve with IT) | Web app access, OSC to ESP32 |
+| Ethernet | `192.168.0.1` (static, manual) | Art-Net to PixLite only |
 
-Clone to NUC:
-```
-git clone https://github.com/yichengsun/blumen-lumen.git
-```
+**Do not set Ethernet to DHCP** — PixLite won't be reachable.
 
-Key folders:
+---
+
+## MadMapper config (confirmed)
+
+- Art-Net: **Broadcast mode**, network interface `192.168.0.1` (Ethernet, not WiFi)
+- OSC input port: **8000**
+- OSC feedback port: **9000**, feedback IP: **auto**
+- Fixtures 1–12 on Art-Net universes 1–12 (PixLite remaps to physical outputs internally)
+
+---
+
+## What still needs doing
+
+1. **Stanford IT**: Reserve NUC WiFi IP for MAC `F8:63:3F:26:55:D4`
+2. **Stanford IT**: Reserve ESP32 IP for MAC `24:0A:C4:EC:A7:64` — then update `backend/app.js` line:
+   ```js
+   const oscClientEngine = new Client('10.34.84.37', 8001); // ← replace with reserved IP
+   ```
+3. **mDNS** (optional but nice): Rename NUC to `blumenlumen` (Settings → System → About → Rename this PC) → students use `http://blumenlumen.local`
+4. **Stanford DNS** (optional): Ask IT for `blumen.stanford.edu` pointing to NUC's reserved IP
+5. **Linear actuator**: Find model label on physical unit (still unknown)
+6. **Control box photos**: Add to `Datasheets/` once housing is built
+
+---
+
+## Repo
+
+Everything at: **https://github.com/yichengsun/blumen-lumen** (main branch)
+
 ```
-Arduino/blumen-motor/    ← already flashed to ESP32, don't need to re-flash
-backend/                 ← npm start (port 80) — update oscClientEngine IP once IT reserves ESP32 IP
-frontend/                ← npm start (port 3000)
+Arduino/blumen-motor/    ← flashed to ESP32 — reflash only if sketch changes
+backend/                 ← npm start (port 80) — also serves built React app
+frontend/                ← npm run build after any frontend changes
 MadMapper/               ← .mad files
-Startup/                 ← blumen-startup.bat (update CD paths after clone)
+Startup/                 ← blumen-startup.bat
+Datasheets/              ← hardware PDFs
 ```
 
----
-
-## backend/app.js — one line still needs updating
-
-Once IT provides the ESP32's reserved IP, update line 9 of `backend/app.js`:
-```js
-const oscClientEngine = new Client('TBD', 8001);  // ← replace TBD with ESP32 reserved IP
+After any frontend code change:
 ```
-Current DHCP IP is `10.34.84.37` but may change until reserved.
-
----
-
-## startup.bat — update paths after cloning
-
-`Startup/blumen-startup.bat` still has old IDEO paths. After cloning the repo to the NUC, update the two CD lines to wherever the repo lives, e.g.:
+cd frontend
+npm run build
 ```
-CD C:\Users\Dream Lab\Documents\GitHub\blumen-lumen\backend
-CD C:\Users\Dream Lab\Documents\GitHub\blumen-lumen\frontend
-```
-
----
-
-## What still needs doing (in order)
-
-1. ✅ Motor controller — done
-2. 🔄 **MadMapper → PixLite → LEDs** ← YOU ARE HERE
-3. Clone `blumen-lumen` repo to NUC
-4. Update `backend/app.js` with ESP32 reserved IP (pending IT)
-5. Update `Startup/blumen-startup.bat` with correct paths
-6. Run `npm install` in `backend/` and `frontend/`
-7. Test full system end-to-end (web app → motor + LEDs)
-8. Get Stanford IT to reserve NUC WiFi IP too
+Then restart the backend — it serves `frontend/build/` automatically.

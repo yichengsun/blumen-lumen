@@ -1,5 +1,15 @@
-const server = require('http').createServer();
+const express = require('express');
+const path = require('path');
+const app = express();
+const server = require('http').createServer(app);
 const io = require('socket.io')(server);
+
+// Serve built React app — run `npm run build` in frontend/ after any frontend changes
+const buildPath = path.join(__dirname, '..', 'frontend', 'build');
+app.use(express.static(buildPath));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+});
 
 const { Client } = require('node-osc');
 

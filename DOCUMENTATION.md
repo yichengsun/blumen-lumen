@@ -8,20 +8,20 @@
 ## Document Status
 
 ### Open TODOs
-- [ ] Fill in all IP addresses once IT provisions the dedicated WiFi network (see [Section 5](#5-network-topology))
-- [ ] Once IT confirms the ESP32's DHCP-reserved IP, update `blumen-lumen-ideo/iPad/ddl-ipad-backend/app.js` line: `const oscClientEngine = new Client('<ESP32-IP>', 8001)`
+- [ ] Fill in NUC WiFi IP and ESP32 IP once Stanford IT provisions DHCP reservations (see [Section 5](#5-network-topology))
 - [ ] Identify the linear actuator model — check the physical unit for a label (brand, stroke length, force rating)
-- [x] Confirm which LED strip model is on the spokes — check the strip itself for markings (e.g. WS2812B, SK6812)
-- [ ] Recalibrate `FULL_PERIOD` in the Arduino sketch at the new location — 70,500ms was measured at the original IDEO installation; mechanical friction and actuator wear may have changed travel time
-- [x] Verify Cytron MD30C R2 jumpers — confirmed `EXT PWM` + `INT PDT`
-- [ ] Confirm MadMapper OSC cue names match what the backend sends — open `yc-dreamlab-blumen.mad` in MadMapper and verify the OSC triggers are `/2/circular_p0`, `/2/stripes_p0`, etc.
-- [ ] Document the actual Art-Net universe assignments in MadMapper and the PixLite config
-- [ ] Document how many LED spokes there are and how many pixels per spoke
 - [ ] Add photos of the fully assembled control box once housing is built
 - [ ] Update the credit and web access plaque text here once finalized
 - [ ] **mDNS setup**: Rename NUC computer name to `blumenlumen` (Settings → System → About → Rename this PC), then students can reach the app at `http://blumenlumen.local` — no IT needed, works on all modern devices
-- [ ] **Stanford DNS entry**: Ask IT to add a DNS record `blumen.stanford.edu → NUC's reserved IP` for a permanent polished URL independent of the local network
-- [ ] **Eliminate port number from URL**: Update backend (`app.js`) to also serve the built React app statically on port 80, so students go to `http://blumenlumen.local` or `http://blumen.stanford.edu` with no `:3000` needed (`Controller.js` already uses `window.location.hostname` — ✅ done)
+- [ ] **Stanford DNS entry**: Ask IT to add a DNS record `blumen.stanford.edu → NUC's reserved IP` for a permanent polished URL
+- [x] ~~Confirm which LED strip model is on the spokes~~ — **WS2812B confirmed** (PixLite config)
+- [x] ~~Document how many LED spokes / pixels per spoke~~ — **12 spokes, 70 pixels each**
+- [x] ~~Document Art-Net universe assignments~~ — **documented in Section 6.3**
+- [x] ~~Verify Cytron MD30C R2 jumpers~~ — **confirmed `EXT PWM` + `INT PDT`**
+- [x] ~~Confirm MadMapper OSC cue names~~ — **confirmed, documented in Section 6.3**
+- [x] ~~Recalibrate `FULL_PERIOD`~~ — **confirmed correct at 70,500ms at Stanford location**
+- [x] ~~Update `backend/app.js` with ESP32 IP~~ — **set to `10.34.84.37` (update when IT reserves)**
+- [x] ~~Eliminate port number from URL~~ — **done; backend now serves built React on port 80**
 
 ### Low-Confidence Sections — Help Needed
 
@@ -29,12 +29,13 @@ These are areas where the documentation is based on code + photos but not confir
 
 | Section | What I'm Unsure About | How to Verify |
 |---|---|---|
-| **LED strips** | Strip model — Based on the era (~2017), visual confirmation of the number of solder pads: WS2813A/B, 5V. In the housing it is hooked up to a PixLite Long Range receiver|
-| **NUC network interfaces** | The NUC needs to be on WiFi (for router/Arduino) AND Ethernet (for PixLite) simultaneously. I assumed NUC has both active. If the NUC only has one Ethernet port and no WiFi, you'll need a small switch. | On the NUC, open Network Settings and check how many active adapters there are. |
-| **Advatek ↔ NUC connection** | You said the PixLite connects "directly to the NUC via ethernet." If it's truly a direct cable (no switch), the NUC's Ethernet IP must be on the same subnet as the PixLite's IP, and the WiFi IP must be on the router's different subnet. This is the expected setup but worth confirming it's working. | Open MadMapper → Output settings and confirm it shows the PixLite as detected/connected. |
+| **Linear actuator model** | No label found on the physical unit. Model, stroke length, and force rating are unknown. | Check the actuator body for any stamped or stickered label; alternatively measure stroke length physically. |
+| ~~**LED strips**~~ | ✅ Confirmed: WS2812B, 5V, G-R-B order, 12 strips × 70 pixels | — |
+| ~~**NUC network interfaces**~~ | ✅ Confirmed: NUC has WiFi (to Stanford network, `192.168.0.1`) and Ethernet (direct to PixLite, `192.168.0.50`) both active simultaneously | — |
+| ~~**Advatek ↔ NUC connection**~~ | ✅ Confirmed working: MadMapper broadcast mode on `192.168.0.1` → PixLite at `192.168.0.50`, all 12 strips lighting | — |
 | ~~**Cytron PWM jumper**~~ | ✅ Confirmed: `EXT PWM` + `INT PDT` | — |
-| **Motor direction vs. open/close** | Code says `extend = DIR pin LOW` (flower opens) and `retract = DIR pin HIGH` (flower closes). This matches the code comments but I don't know if the actuator is mounted in the standard or inverted orientation. If the flower closes when you send `1.0`, the directions are swapped. | Send `0.5` via the web app slider from a known closed state — does it open? If not, swap GPIO 27 HIGH/LOW in the code. |
-| **MadMapper OSC cues** | I listed `/2/circular_p0` etc. based on what the backend *sends*, but I haven't read the `.mad` file to confirm MadMapper is actually configured to *receive* those exact addresses. | In MadMapper with `yc-dreamlab-blumen.mad` open: go to OSC triggers panel and screenshot the configured addresses. |
+| ~~**Motor direction vs. open/close**~~ | ✅ Confirmed: `extend = DIR pin LOW` = flower opens (correct orientation) | — |
+| ~~**MadMapper OSC cues**~~ | ✅ Confirmed: OSC input port 8000, feedback port 9000, feedback IP auto | — |
 | ~~**Power supply amperage**~~ | ✅ Confirmed: Mean Well S-300-12 (12V/25A) and S-300-5 (5V/60A) | — |
 
 ---
@@ -107,14 +108,14 @@ The full data flow from user interaction to physical motion:
 │  ┌──────────────┐    Socket.IO    ┌──────────────────────────────┐  │
 │  │ Phone/Laptop │ ─────────────► │  Intel NUC (Windows PC)      │  │
 │  │  Web Browser │                │                              │  │
-│  │  port 3000   │                │  ┌────────────────────────┐  │  │
-│  └──────────────┘                │  │  ddl-ipad (React)      │  │  │
-│                                  │  │  port 3000             │  │  │
+│  │  port 80     │                │  ┌────────────────────────┐  │  │
+│  └──────────────┘                │  │  React app (built)     │  │  │
+│                                  │  │  served by backend     │  │  │
 │                                  │  └────────────────────────┘  │  │
 │                                  │                              │  │
 │                                  │  ┌────────────────────────┐  │  │
-│                                  │  │  ddl-ipad-backend      │  │  │
-│                                  │  │  (Node.js) port 80     │  │  │
+│                                  │  │  Node.js backend       │  │  │
+│                                  │  │  port 80 (HTTP + WS)   │  │  │
 │                                  │  └───────────┬────────────┘  │  │
 │                                  │              │               │  │
 │                                  │    OSC UDP   │               │  │
@@ -291,16 +292,39 @@ The flower's position is controlled by time: the code calculates how long to run
 | | |
 |---|---|
 | **Role** | Receives Art-Net lighting data from MadMapper and drives LED strips |
+| **MAC Address** | `E0-B6-F5-E0-24-8C` |
+| **IP Address** | `192.168.0.50` (static, on Ethernet interface) |
 | **Universes** | 16 Art-Net universes |
 | **Outputs** | 16 × RJ45 (CAT5 differential long-range outputs) |
 | **Protocols** | Art-Net, sACN (E1.31) |
 | **Power** | 5V DC (from PSU2) |
 | **Network** | Ethernet — direct cable to Intel NUC |
-| **Web config** | Access at `http://<PixLite-IP>` in a browser |
+| **Web config** | `http://192.168.0.50` (connect to NUC Ethernet subnet first) |
 | **Manual** | https://www.advateklights.com/downloads/pixlite-16-mkii-user-manual |
 | **Product page** | https://www.advateklights.com/pixlite16-mk2 |
 
 The PixLite has its own IP address on the Ethernet interface. MadMapper is configured to send Art-Net UDP packets to this IP. The PixLite then converts Art-Net universe data into physical pixel signals for each LED strip output.
+
+**Confirmed output configuration (Advanced mode enabled):**
+
+The PixLite uses "Advanced" per-output pixel configuration. Each of the 12 active outputs is set to **70 pixels**. The Art-Net universes are mapped to outputs in a non-sequential order (matching the original IDEO physical wiring):
+
+| Physical Output | Art-Net Universe | Pixels |
+|---|---|---|
+| Output 1 | Universe 6 | 70 |
+| Output 2 | Universe 7 | 70 |
+| Output 3 | Universe 5 | 70 |
+| Output 4 | Universe 8 | 70 |
+| Output 5 | Universe 11 | 70 |
+| Output 6 | Universe 12 | 70 |
+| Output 7 | Universe 10 | 70 |
+| Output 8 | Universe 9 | 70 |
+| Output 9 | Universe 3 | 70 |
+| Output 10 | Universe 4 | 70 |
+| Output 11 | Universe 1 | 70 |
+| Output 12 | Universe 2 | 70 |
+
+MadMapper fixtures 1–12 are assigned to Art-Net universes 1–12 sequentially. The PixLite's scrambled universe→output mapping handles re-routing to the correct physical RJ45 output.
 
 **Factory reset procedure** (if IP address is unknown):
 1. Hold the `Factory Reset` button for 5 seconds
@@ -330,9 +354,11 @@ Datasheet: https://www.meanwell.com/productPdf.aspx?goods=S-300
 
 | | |
 |---|---|
-| **Type** | WS2812B-type addressable RGB (built ~2017) |
+| **Type** | WS2812B addressable RGB |
 | **Voltage** | 5V |
+| **Color order** | G-R-B (configured in PixLite) |
 | **Data protocol** | Single-wire NeoPixel-compatible |
+| **Count** | 12 strips (one per spoke) × 70 pixels = **840 pixels total** |
 | **Controller** | Advatek PixLite 16 (via RJ45 long-range differential outputs) |
 | **Location** | One strip per spoke of the flower umbrella structure |
 
@@ -369,9 +395,7 @@ Intel NUC (Ethernet port) ────────────► Advatek PixLit
 
 Intel NUC (WiFi) ─────────────────────► Local WiFi router
   OSC UDP :8001 → ESP32 (motor commands)
-  OSC UDP :8000 → MadMapper (lighting commands, received locally on NUC)
-  HTTP :3000 → phones/laptops (web app)
-  Socket.IO :80 → phones/laptops (real-time events)
+  HTTP :80 → phones/laptops (web app + Socket.IO on same port)
 ```
 
 ---
@@ -403,23 +427,23 @@ Intel NUC (WiFi) ─────────────────────
       └──────────────┘
 ```
 
-### IP address table (update after IT sets up WiFi)
+### IP address table
 
 | Device | Interface | MAC Address | IP Address | Notes |
 |---|---|---|---|---|
-| Intel NUC | WiFi | `F8:63:3F:26:55:D4` | `TBD` (pending IT DHCP reservation) | Register MAC with IT for a stable reserved IP |
-| Intel NUC | Ethernet | N/A | `TBD` | Same subnet as PixLite; not registered with IT |
-| Advatek PixLite 16 | Ethernet | N/A | `TBD` | Configure via web UI; not on Stanford network |
-| ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP, not yet reserved) | Register MAC with IT for a stable reserved IP |
+| Intel NUC | WiFi | `F8:63:3F:26:55:D4` | `10.34.87.197` (DHCP — reserve with IT) | Register MAC with IT for a stable reserved IP |
+| Intel NUC | Ethernet | — | `192.168.0.1` (static, manual) | Direct link to PixLite only — not on Stanford network |
+| Advatek PixLite 16 | Ethernet | `E0-B6-F5-E0-24-8C` | `192.168.0.50` (static) | Not on Stanford network; configure at `http://192.168.0.50` |
+| ESP32 | WiFi | `24:0A:C4:EC:A7:64` | `10.34.84.37` (DHCP — reserve with IT) | Register MAC with IT for a stable reserved IP |
 | Phones/Laptops | WiFi | personal | DHCP | Assigned by router; no registration needed |
 
 ### Ports in use
 
 | Port | Protocol | Service | Direction |
 |---|---|---|---|
-| 3000 | TCP | React web app (ddl-ipad) | Browser → NUC |
-| 80 | TCP | Socket.IO backend | Browser → NUC |
-| 8000 | UDP | OSC → MadMapper | Backend → NUC (loopback) |
+| 80 | TCP | Backend (HTTP + Socket.IO) — also serves built React app | Browser → NUC |
+| 8000 | UDP | OSC → MadMapper (input) | Backend → NUC (loopback) |
+| 9000 | UDP | OSC ← MadMapper (feedback) | MadMapper → Backend (loopback) |
 | 8001 | UDP | OSC → ESP32 motor | Backend → ESP32 |
 | 6454 | UDP | Art-Net → PixLite | MadMapper → PixLite |
 
@@ -427,16 +451,18 @@ Intel NUC (WiFi) ─────────────────────
 
 ## 6. Software Stack
 
-### 6.1 ddl-ipad — React Web App (Frontend)
+### 6.1 React Web App (Frontend)
 
 | | |
 |---|---|
-| **Repo** | https://github.com/ideo/ddl-ipad |
+| **Repo** | https://github.com/yichengsun/blumen-lumen (in `frontend/`) |
 | **Tech** | React 16, Socket.IO client, Framer Motion, Material UI |
-| **Runs on** | Intel NUC, served at `http://<NUC-IP>:3000` |
-| **Access** | Any browser on the local WiFi |
+| **Runs on** | Intel NUC — **served by the backend on port 80** (no separate server) |
+| **Access** | Any browser on the local WiFi: `http://<NUC-IP>` (no port number) |
 
-**Key file:** `src/Components/Controller.js` — the Socket.IO connection uses `window.location.hostname` (dynamic), so it automatically connects back to whichever machine served the page. No IP editing needed.
+The frontend is compiled to a static build and served directly by the Express backend. Students connect to `http://<NUC-IP>` — no `:3000` needed.
+
+**Key file:** `frontend/src/Components/Controller.js` — the Socket.IO connection uses `window.location.hostname` (dynamic), so it automatically connects back to whichever machine served the page. No IP editing needed.
 
 **UI sections:**
 - **Blumen Lumen tab**: Controls the flower
@@ -446,29 +472,30 @@ Intel NUC (WiFi) ─────────────────────
   - Color palette selector (4 palettes)
 - **Room Light tab**: Ambient room lighting presets (not active at Stanford)
 
-**To start:**
+**After any frontend code change**, rebuild before restarting the backend:
 ```bash
-cd ddl-ipad
+cd frontend
 npm install   # first time only
-npm start     # serves on port 3000
+npm run build # compile React → frontend/build/
 ```
+The backend serves `frontend/build/` automatically — no extra server to start.
 
 ---
 
-### 6.2 ddl-ipad-backend — Node.js Server (Backend)
+### 6.2 Node.js Backend
 
 | | |
 |---|---|
-| **Repo** | https://github.com/ideo/ddl-ipad-backend (also in `blumen-lumen-ideo/iPad/ddl-ipad-backend/`) |
-| **Tech** | Node.js, Socket.IO, node-osc |
+| **Repo** | https://github.com/yichengsun/blumen-lumen (in `backend/`) |
+| **Tech** | Node.js 12, Express 4, Socket.IO, node-osc |
 | **Runs on** | Intel NUC, port 80 |
 
-This server is the translator between the web UI and the physical hardware. It maintains the current state of the flower and emits OSC messages when state changes.
+This server is the translator between the web UI and the physical hardware. It also serves the built React frontend statically on the same port 80.
 
-**Key file:** `app.js`
+**Key file:** `backend/app.js`
 ```
-Line to update with new IP once IT provides it:
-  const oscClientEngine = new Client('<ESP32-IP>', 8001); // Arduino motor
+Line to update when IT reserves the ESP32's IP:
+  const oscClientEngine = new Client('10.34.84.37', 8001); // Arduino motor
 
 Already correct — no IP editing needed:
   const oscClient = new Client('127.0.0.1', 8000);     // MadMapper (same machine)
@@ -498,12 +525,22 @@ npm start     # node app.js, listens on port 80
 |---|---|
 | **Version** | Licensed on Intel NUC |
 | **Role** | Generates Art-Net pixel data, sends to Advatek PixLite |
-| **Active program** | `blumen-lumen-ideo/MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` |
-| **OSC input port** | 8000 |
-| **Art-Net output** | UDP to Advatek PixLite IP, port 6454 |
+| **Active program** | `MadMapper/Blumen Programs/yc-dreamlab-blumen.mad` |
+| **OSC input port** | **8000** (backend → MadMapper) |
+| **OSC feedback port** | **9000** (MadMapper → backend, feedback IP: auto) |
+| **Art-Net output** | **Broadcast mode**, Ethernet interface `192.168.0.1`, port 6454 |
 | **Docs** | https://madmapper.com/documentation |
 
-MadMapper has saved programs for the flower (`js-`, `pk-`, `yc-dreamlab-blumen.mad`). Each contains the LED mapping and the visual presets. The backend triggers these presets via OSC messages.
+MadMapper has saved programs for the flower. Each contains the LED mapping and the visual presets. The backend triggers these presets via OSC messages.
+
+**Art-Net configuration (confirmed):**
+- Mode: **Broadcast** (not unicast) — required so all 12 PixLite outputs receive data
+- Network interface: `192.168.0.1` (NUC's Ethernet interface, not WiFi)
+- Fixtures: 12 fixtures assigned to Art-Net universes 1–12 sequentially (PixLite remaps to physical outputs)
+
+**OSC configuration (confirmed):**
+- OSC input port: **8000** (MadMapper listens for cue triggers from backend)
+- OSC feedback port: **9000** (MadMapper sends state feedback back; feedback IP: **auto**)
 
 **OSC messages MadMapper listens for** (on port 8000):
 
@@ -530,8 +567,10 @@ MadMapper has saved programs for the flower (`js-`, `pk-`, `yc-dreamlab-blumen.m
 **Values to update for a new location** (at the top of `blumen-motor.ino`):
 ```cpp
 const char SSID[] = "Stanford";       // WiFi network name (open, MAC-registered)
-const unsigned long FULL_PERIOD = 70500; // ms for actuator full travel — recalibrate on-site
+const unsigned long FULL_PERIOD = 70500; // ms for actuator full travel
 ```
+`FULL_PERIOD = 70500` ms was measured at the original IDEO installation and **confirmed correct at the Stanford d.school location** — no recalibration needed.
+
 The ESP32 uses DHCP (no static IP in sketch). WiFi is an open network — no password needed once the MAC is registered with Stanford IT.
 
 ---
@@ -648,15 +687,14 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 
 **Startup sequence:**
 
-1. **Run `blumen-startup.bat`** — double-click it on the NUC Desktop (or in `blumen-lumen-ideo/Startup/`). This opens two windows:
-   - **"Blumen Backend"** — Node.js server on port 80
-   - **"Blumen Frontend"** — React dev server on port 3000
+1. **Run `blumen-startup.bat`** — double-click it on the NUC Desktop (or in `blumen-lumen/Startup/`). This opens one window:
+   - **"Blumen Backend"** — Node.js server on port 80 (also serves the React app)
 
-   > If either window shows a red error and exits, read the error message before closing it. The most common cause is port 80 requiring Administrator — right-click the `.bat` and choose **Run as administrator**.
+   > If the window shows a red error and exits, read the error message. The most common cause is port 80 requiring Administrator — right-click the `.bat` and choose **Run as administrator**.
 
-2. **MadMapper** should open automatically (it is configured as a Windows startup item). If it didn't launch, open it manually and load `yc-dreamlab-blumen.mad` from `blumen-lumen-ideo/MadMapper/Blumen Programs/`.
+2. **MadMapper** should open automatically (configured as a Windows startup item). If it didn't launch, open it manually and load `yc-dreamlab-blumen.mad` from `MadMapper/Blumen Programs/`.
 
-3. **On your phone or laptop:** Connect to the Stanford WiFi, open a browser to `http://<NUC-IP>:3000`
+3. **On your phone or laptop:** Connect to the Stanford WiFi, open a browser to `http://10.34.87.197` (or whatever the NUC's current IP is — no port number needed).
 
 4. **Verify:** Toggle to Custom mode, drag the open slider — the flower should move. Try changing a behavior preset — LEDs should change.
 
@@ -664,10 +702,7 @@ client.send_message("/2/circular_p2", 1)  # circular pattern, palette 2
 
 **To start manually** (if the `.bat` isn't available or needs debugging):
 ```
-cd blumen-lumen-ideo\iPad\ddl-ipad-backend
-npm start
-
-cd blumen-lumen-ideo\iPad\ddl-ipad
+cd blumen-lumen\backend
 npm start
 ```
 
@@ -781,8 +816,9 @@ The motion is open-loop (timed). If the actuator was manually moved or hit a lim
 
 | Repo | Contents |
 |---|---|
-| https://github.com/FoldHaus/blumen-lumen-ideo | Arduino sketch, MadMapper files, backend server, IP config, startup scripts |
-| https://github.com/ideo/ddl-ipad | React frontend web app |
+| https://github.com/yichengsun/blumen-lumen | **Canonical repo** — Arduino sketch, MadMapper files, Node.js backend, React frontend, startup scripts, datasheets, all docs |
+| https://github.com/FoldHaus/blumen-lumen-ideo | Archived IDEO source (reference only — do not edit) |
+| https://github.com/ideo/ddl-ipad | Archived IDEO React frontend (reference only — do not edit) |
 
 ---
 
